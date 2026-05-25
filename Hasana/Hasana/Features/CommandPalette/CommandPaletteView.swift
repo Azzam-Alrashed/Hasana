@@ -91,7 +91,7 @@ struct CommandPaletteView: View {
                 .accessibilityHidden(true)
 
             TextField(
-                "اكتب فكرة جديدة أو ابحث...",
+                commandPalettePlaceholder,
                 text: Binding(
                     get: { viewModel.query },
                     set: { viewModel.query = $0 }
@@ -121,6 +121,15 @@ struct CommandPaletteView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+
+    private var commandPalettePlaceholder: String {
+        switch HasanaLanguage(rawValue: UserDefaults.standard.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic {
+        case .arabic:
+            "اكتب فكرة جديدة أو ابحث..."
+        case .english:
+            "Type a new idea or search..."
+        }
     }
 }
 
@@ -219,7 +228,7 @@ private struct PromptRow: View {
                     .background(HasanaTheme.accent.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                Text("أنشئ بطاقة: \"\(trimmedPrompt)\"")
+                Text(promptTitle)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(HasanaTheme.textPrimary)
                     .lineLimit(1)
@@ -240,5 +249,14 @@ private struct PromptRow: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
+    }
+
+    private var promptTitle: String {
+        switch HasanaLanguage(rawValue: UserDefaults.standard.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic {
+        case .arabic:
+            "أنشئ بطاقة: \"\(trimmedPrompt)\""
+        case .english:
+            "Create card: \"\(trimmedPrompt)\""
+        }
     }
 }

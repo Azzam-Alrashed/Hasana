@@ -10,11 +10,12 @@ import SwiftUI
 struct RootView: View {
     @State private var commandPalette = CommandPaletteViewModel()
     @State private var canvasStore = HasanaCanvasStore()
+    @State private var appSettings = HasanaAppSettings()
     @State private var viewport = ViewportState()
+    @State private var isShowingSettings = false
 
     var body: some View {
         ZStack {
-            // Main Spatial Canvas View
             HasanaCanvasView(
                 store: canvasStore,
                 viewport: $viewport,
@@ -23,8 +24,6 @@ struct RootView: View {
                 }
             )
 
-            // Floating Command (Overlay)
-            // Floating Command (Overlay)
             FloatingCommandButton(
                 onTap: {
                     commandPalette.setPresented(true)
@@ -41,13 +40,20 @@ struct RootView: View {
             )
             .environment(\.layoutDirection, .leftToRight)
 
-            // Command Palette (Overlay)
             CommandPaletteView(viewModel: commandPalette)
         }
-        .environment(\.layoutDirection, .rightToLeft)
-        .environment(\.locale, Locale(identifier: "ar"))
+        .sheet(isPresented: $isShowingSettings) {
+            HasanaSettingsView(settings: appSettings)
+        }
+        .environment(\.layoutDirection, appSettings.layoutDirection)
+        .environment(\.locale, appSettings.locale)
+        .preferredColorScheme(appSettings.colorScheme)
         .onAppear {
             configureCommandHandlers()
+            refreshCommands()
+        }
+        .onChange(of: appSettings.language) {
+            refreshCommands()
         }
     }
 
@@ -74,7 +80,13 @@ struct RootView: View {
             withAnimation(.spring()) {
                 canvasStore.clearCanvas()
             }
+        case .openSettings:
+            isShowingSettings = true
         }
+    }
+
+    private func refreshCommands() {
+        commandPalette.commands = HasanaCommand.defaults(language: appSettings.language)
     }
 }
 

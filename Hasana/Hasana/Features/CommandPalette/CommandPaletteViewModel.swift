@@ -265,6 +265,7 @@ final class CommandPaletteViewModel {
 
 private extension HasanaCommandCategory {
     static let displayOrder: [HasanaCommandCategory] = [
-        .canvas
+        .canvas,
+        .app
     ]
 }
