@@ -1,28 +1,28 @@
 import SwiftUI
 
 enum HasanaTheme {
-    static let background = adaptive(light: "#F7F3EA", dark: "#07110D")
-    static let backgroundSecondary = adaptive(light: "#EFE8DA", dark: "#101A15")
-    static let elevatedSurface = adaptive(light: "#FFFBF2", dark: "#16211B")
-    static let elevatedSurfaceSoft = adaptive(light: "#F8F0E2", dark: "#1B2A22")
+    static let background = adaptive(light: "#F3F7FC", dark: "#0B131E")
+    static let backgroundSecondary = adaptive(light: "#E6EEF7", dark: "#111E30")
+    static let elevatedSurface = adaptive(light: "#FBFDFF", dark: "#15243B")
+    static let elevatedSurfaceSoft = adaptive(light: "#F5F9FD", dark: "#192A44")
 
-    static let textPrimary = adaptive(light: "#18231D", dark: "#F2EEE4")
-    static let textMuted = adaptive(light: "#667063", dark: "#B7B0A3")
+    static let textPrimary = adaptive(light: "#0E1724", dark: "#F0F5FA")
+    static let textMuted = adaptive(light: "#5F7085", dark: "#A3B5C9")
 
-    static let accent = adaptive(light: "#0F6B4D", dark: "#4FC58E")
-    static let accentSoft = adaptive(light: "#DDEDE4", dark: "#153B2C")
-    static let gold = adaptive(light: "#B08A3C", dark: "#D5B86C")
-    static let goldSoft = adaptive(light: "#F0E3C3", dark: "#3E3219")
+    static let accent = adaptive(light: "#4C99E9", dark: "#7FB5F5")
+    static let accentSoft = adaptive(light: "#EBF3FC", dark: "#182E4B")
+    static let gold = adaptive(light: "#D5A754", dark: "#E9C883")
+    static let goldSoft = adaptive(light: "#FDF6E2", dark: "#3F3219")
     static let reflection = adaptive(light: "#5F6596", dark: "#A9AEE8")
     static let reflectionSoft = adaptive(light: "#E4E5F2", dark: "#282B49")
     static let finance = adaptive(light: "#9A6234", dark: "#E0A267")
-    static let idea = adaptive(light: "#4E8270", dark: "#78D7B2")
+    static let idea = adaptive(light: "#64B5F6", dark: "#90CAF9")
     static let summary = adaptive(light: "#706086", dark: "#C2A7E4")
 
-    static let border = adaptive(light: "#DED3BC", dark: "#31443A")
-    static let borderStrong = adaptive(light: "#C8B68F", dark: "#5A735F")
-    static let overlayScrim = adaptive(light: "#17261F", dark: "#020604")
-    static let shadow = adaptive(light: "#2A2112", dark: "#000000")
+    static let border = adaptive(light: "#D2E2F5", dark: "#223550")
+    static let borderStrong = adaptive(light: "#ADCBEF", dark: "#3D5C85")
+    static let overlayScrim = adaptive(light: "#0B131E", dark: "#030508")
+    static let shadow = adaptive(light: "#182E4B", dark: "#000000")
 
     static let paletteBackground = LinearGradient(
         colors: [
