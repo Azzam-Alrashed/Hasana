@@ -61,20 +61,18 @@ final class HasanaCanvasStore {
     }
 
     private func load() {
-        let defaults = Self.defaultNodes()
-
         guard
             let data = userDefaults.data(forKey: Self.storageKey),
             let snapshot = try? decoder.decode(HasanaCanvasSnapshot.self, from: data),
             snapshot.schemaVersion == HasanaCanvasSnapshot.currentSchemaVersion
         else {
-            nodes = defaults
+            nodes = []
             viewportOffset = .zero
             viewportScale = 1.0
             return
         }
 
-        nodes = merge(defaultNodes: defaults, persistedNodes: snapshot.nodes)
+        nodes = snapshot.nodes.filter { $0.kind == .idea }
         viewportOffset = snapshot.viewportOffset
         viewportScale = snapshot.viewportScale
     }
@@ -92,20 +90,7 @@ final class HasanaCanvasStore {
     }
 
     private func merge(defaultNodes: [HasanaCanvasNode], persistedNodes: [HasanaCanvasNode]) -> [HasanaCanvasNode] {
-        let persistedByID = Dictionary(uniqueKeysWithValues: persistedNodes.map { ($0.id, $0) })
-
-        var merged = defaultNodes.map { defaultNode in
-            guard let persisted = persistedByID[defaultNode.id] else { return defaultNode }
-            var node = defaultNode
-            node.position = persisted.position
-            return node
-        }
-
-        let builtInIDs = Set(defaultNodes.map(\.id))
-        let ideaNodes = persistedNodes.filter { !builtInIDs.contains($0.id) && $0.kind == .idea }
-        merged.append(contentsOf: ideaNodes)
-
-        return merged
+        persistedNodes.filter { $0.kind == .idea }
     }
 
     private func visibleCenterPosition(in viewport: ViewportState) -> CGPoint {
@@ -116,37 +101,6 @@ final class HasanaCanvasStore {
     }
 
     static func defaultNodes() -> [HasanaCanvasNode] {
-        let positionByCommand: [HasanaCommandID: CGPoint] = [
-            .openToday: .zero,
-            .logGoodDeed: CGPoint(x: -280, y: -120),
-            .setIntention: CGPoint(x: 280, y: -120),
-            .addPriority: CGPoint(x: 0, y: -300),
-            .openPrayerTimes: CGPoint(x: -300, y: 140),
-            .startDhikr: CGPoint(x: 0, y: 300),
-            .reflect: CGPoint(x: 300, y: 140),
-            .addSadaqah: CGPoint(x: 340, y: -310)
-        ]
-
-        let connectionsByCommand: [HasanaCommandID: [HasanaCommandID]] = [
-            .openToday: [.logGoodDeed, .setIntention, .addPriority, .openPrayerTimes, .startDhikr, .reflect],
-            .setIntention: [.addPriority],
-            .openPrayerTimes: [.startDhikr],
-            .reflect: [.logGoodDeed],
-            .addSadaqah: [.openToday]
-        ]
-
-        return HasanaCommand.defaults.map { command in
-            HasanaCanvasNode(
-                id: .command(command.id),
-                kind: .command,
-                position: positionByCommand[command.id] ?? .zero,
-                title: command.title,
-                subtitle: command.subtitle,
-                icon: command.icon,
-                theme: HasanaCanvasTheme(category: command.category),
-                commandID: command.id,
-                connectedNodeIDs: connectionsByCommand[command.id, default: []].map { .command($0) }
-            )
-        }
+        []
     }
 }
