@@ -45,14 +45,8 @@ enum HasanaTheme {
 
     static func categoryColor(_ category: HasanaCommandCategory) -> Color {
         switch category {
-        case .today:
-            idea
-        case .worship:
+        case .canvas:
             accent
-        case .reflection:
-            reflection
-        case .finance:
-            finance
         }
     }
 

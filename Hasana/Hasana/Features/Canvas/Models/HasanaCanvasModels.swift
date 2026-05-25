@@ -113,14 +113,8 @@ enum HasanaCanvasSheet: Identifiable, Equatable {
 extension HasanaCanvasTheme {
     init(category: HasanaCommandCategory) {
         switch category {
-        case .today:
-            self = .today
-        case .worship:
-            self = .worship
-        case .reflection:
-            self = .reflection
-        case .finance:
-            self = .finance
+        case .canvas:
+            self = .idea
         }
     }
 }
