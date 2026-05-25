@@ -29,7 +29,7 @@ struct FloatingCommandButton: View {
 
             ZStack {
                 if isExpanded {
-                    Color.black.opacity(0.01)
+                    HasanaTheme.overlayScrim.opacity(0.04)
                         .ignoresSafeArea()
                         .onTapGesture {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.72)) {
@@ -43,12 +43,13 @@ struct FloatingCommandButton: View {
                 ZStack {
                     Circle()
                         .fill(.ultraThinMaterial)
+                        .background(HasanaTheme.elevatedSurface.opacity(0.52), in: Circle())
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.24), lineWidth: 0.5)
+                                .stroke(HasanaTheme.border.opacity(0.9), lineWidth: 0.7)
                         )
                         .shadow(
-                            color: Color.black.opacity(isDragging || isExpanded ? 0.28 : 0.18),
+                            color: HasanaTheme.shadow.opacity(isDragging || isExpanded ? 0.26 : 0.16),
                             radius: isDragging || isExpanded ? 16 : 10,
                             x: 0,
                             y: isDragging || isExpanded ? 8 : 5
@@ -56,6 +57,7 @@ struct FloatingCommandButton: View {
 
                     Image(systemName: isExpanded ? "xmark" : "command")
                         .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(HasanaTheme.accent)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
                 .frame(width: buttonSize, height: buttonSize)
@@ -127,7 +129,7 @@ struct FloatingCommandButton: View {
         ZStack {
             QuickActionBubble(
                 icon: "heart.fill",
-                color: .green,
+                color: HasanaTheme.accent,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .goodDeed,
                 size: 48,
@@ -144,7 +146,7 @@ struct FloatingCommandButton: View {
 
             QuickActionBubble(
                 icon: "sparkles",
-                color: .indigo,
+                color: HasanaTheme.gold,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .intention,
                 size: 42,
@@ -161,7 +163,7 @@ struct FloatingCommandButton: View {
 
             QuickActionBubble(
                 icon: "moon.stars",
-                color: .orange,
+                color: HasanaTheme.reflection,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .reflect,
                 size: 42,
@@ -315,6 +317,7 @@ private struct QuickActionBubble: View {
         ZStack {
             Circle()
                 .fill(.ultraThinMaterial)
+                .background(HasanaTheme.elevatedSurface.opacity(0.54), in: Circle())
                 .overlay(
                     Circle()
                         .stroke(isHighlighted ? color : color.opacity(0.32), lineWidth: isHighlighted ? 2 : 1)
