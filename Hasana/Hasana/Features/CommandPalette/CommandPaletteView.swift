@@ -4,6 +4,9 @@ struct CommandPaletteView: View {
     let viewModel: CommandPaletteViewModel
     @FocusState private var isFocused: Bool
 
+    private let paletteCornerRadius: CGFloat = 26
+    private let rowCornerRadius: CGFloat = 18
+
     var body: some View {
         ZStack {
             if viewModel.isPresented {
@@ -42,16 +45,23 @@ struct CommandPaletteView: View {
                         }
                     }
                 }
-                .background(HasanaTheme.paletteBackground)
-                .background(.ultraThinMaterial)
                 .frame(maxWidth: 480)
-                .padding(.horizontal, 24)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(HasanaTheme.border.opacity(0.5), lineWidth: 0.8)
+                .background(
+                    .ultraThinMaterial,
+                    in: RoundedRectangle(cornerRadius: paletteCornerRadius, style: .continuous)
                 )
-                .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 24, x: 0, y: 12)
+                .background(
+                    HasanaTheme.paletteBackground,
+                    in: RoundedRectangle(cornerRadius: paletteCornerRadius, style: .continuous)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: paletteCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: paletteCornerRadius, style: .continuous)
+                        .stroke(HasanaTheme.border.opacity(0.44), lineWidth: 0.8)
+                )
+                .shadow(color: HasanaTheme.shadow.opacity(0.08), radius: 10, x: 0, y: 3)
+                .shadow(color: HasanaTheme.shadow.opacity(0.14), radius: 28, x: 0, y: 18)
+                .padding(.horizontal, 24)
                 .transition(.asymmetric(
                     insertion: .scale(scale: 0.96).combined(with: .opacity),
                     removal: .scale(scale: 0.96).combined(with: .opacity)
@@ -102,6 +112,8 @@ struct CommandPaletteView: View {
             .font(.system(size: 16, weight: .regular))
             .foregroundStyle(HasanaTheme.textPrimary)
             .tint(HasanaTheme.accent)
+            .multilineTextAlignment(commandPaletteTextAlignment)
+            .environment(\.layoutDirection, commandPaletteLayoutDirection)
             .submitLabel(.done)
             .onSubmit {
                 viewModel.confirmSelection()
@@ -119,17 +131,41 @@ struct CommandPaletteView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 15)
+        .padding(.vertical, 13)
+        .background(
+            RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
+                .fill(HasanaTheme.elevatedSurface.opacity(0.54))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(isFocused ? 0.62 : 0.28), lineWidth: 0.8)
+        )
+        .padding(.horizontal, 10)
+        .padding(.top, 10)
+        .padding(.bottom, viewModel.hasResults ? 8 : 10)
+        .environment(\.layoutDirection, commandPaletteLayoutDirection)
     }
 
     private var commandPalettePlaceholder: String {
-        switch HasanaLanguage(rawValue: UserDefaults.standard.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic {
+        switch commandPaletteLanguage {
         case .arabic:
             "اكتب فكرة جديدة أو ابحث..."
         case .english:
             "Type a new idea or search..."
         }
+    }
+
+    private var commandPaletteLayoutDirection: LayoutDirection {
+        commandPaletteLanguage == .arabic ? .rightToLeft : .leftToRight
+    }
+
+    private var commandPaletteTextAlignment: TextAlignment {
+        commandPaletteLanguage == .arabic ? .trailing : .leading
+    }
+
+    private var commandPaletteLanguage: HasanaLanguage {
+        HasanaLanguage(rawValue: UserDefaults.standard.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic
     }
 }
 
@@ -152,7 +188,8 @@ private struct CommandResultsList: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.top, 2)
+        .padding(.bottom, 8)
     }
 }
 
@@ -184,7 +221,7 @@ private struct CommandRow: View {
                     .foregroundStyle(isSelected ? HasanaTheme.accent : HasanaTheme.textMuted)
                     .frame(width: 28, height: 28)
                     .background(isSelected ? HasanaTheme.accent.opacity(0.12) : HasanaTheme.textMuted.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .clipShape(Circle())
 
                 Text(command.title)
                     .font(.system(size: 15, weight: .medium))
@@ -202,10 +239,10 @@ private struct CommandRow: View {
             .padding(.vertical, 8)
             .frame(minHeight: 44)
             .background(isSelected ? HasanaTheme.accentSoft.opacity(0.48) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
     }
 }
 
@@ -226,7 +263,7 @@ private struct PromptRow: View {
                     .foregroundStyle(HasanaTheme.accent)
                     .frame(width: 28, height: 28)
                     .background(HasanaTheme.accent.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .clipShape(Circle())
 
                 Text(promptTitle)
                     .font(.system(size: 15, weight: .medium))
@@ -245,10 +282,10 @@ private struct PromptRow: View {
             .padding(.vertical, 8)
             .frame(minHeight: 44)
             .background(isSelected ? HasanaTheme.accentSoft.opacity(0.48) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
     }
 
     private var promptTitle: String {

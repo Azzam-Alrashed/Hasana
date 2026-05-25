@@ -249,45 +249,24 @@ enum HasanaAppIcon: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var symbolName: String {
+    var previewAssetName: String {
         switch self {
         case .primary:
-            "leaf.fill"
+            "AppIconPreview"
         case .icon1:
-            "sparkles"
+            "AppIconPreview1"
         case .icon2:
-            "sun.max.fill"
+            "AppIconPreview2"
         case .icon3:
-            "moon.stars.fill"
+            "AppIconPreview3"
         case .icon4:
-            "drop.fill"
+            "AppIconPreview4"
         case .icon5:
-            "heart.fill"
+            "AppIconPreview5"
         case .icon6:
-            "star.fill"
+            "AppIconPreview6"
         case .icon7:
-            "circle.hexagongrid.fill"
-        }
-    }
-
-    var previewColors: [Color] {
-        switch self {
-        case .primary:
-            [Color(hex: "#2E7D68"), Color(hex: "#F0C65A")]
-        case .icon1:
-            [Color(hex: "#5F6596"), Color(hex: "#E9C883")]
-        case .icon2:
-            [Color(hex: "#C6723A"), Color(hex: "#F7D07B")]
-        case .icon3:
-            [Color(hex: "#1F2D4A"), Color(hex: "#A9AEE8")]
-        case .icon4:
-            [Color(hex: "#248D83"), Color(hex: "#83D9D0")]
-        case .icon5:
-            [Color(hex: "#B85668"), Color(hex: "#F3A6B4")]
-        case .icon6:
-            [Color(hex: "#706086"), Color(hex: "#D8C2F0")]
-        case .icon7:
-            [Color(hex: "#2F6F9F"), Color(hex: "#9DD7F3")]
+            "AppIconPreview7"
         }
     }
 

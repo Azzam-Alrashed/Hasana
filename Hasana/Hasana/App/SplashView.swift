@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct SplashGateView: View {
     @State private var isShowingSplash = true
@@ -117,54 +116,23 @@ private struct AnimatedSplashBackground: View {
 }
 
 private struct SplashAppIcon: View {
-    private let iconImage = UIImage(named: "AppIcon")
+    @AppStorage(HasanaSettingsKeys.appIcon) private var selectedAppIconRawValue = HasanaAppIcon.primary.rawValue
 
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .background(HasanaTheme.elevatedSurface.opacity(0.48), in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(HasanaTheme.borderStrong.opacity(0.64), lineWidth: 0.8)
-                )
-                .shadow(color: HasanaTheme.shadow.opacity(0.20), radius: 28, x: 0, y: 16)
-
-            if let iconImage {
-                Image(uiImage: iconImage)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-            } else {
-                FallbackIconMark()
-                    .padding(28)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+    private var selectedAppIcon: HasanaAppIcon {
+        HasanaAppIcon(rawValue: selectedAppIconRawValue) ?? .primary
     }
-}
 
-private struct FallbackIconMark: View {
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            HasanaTheme.accent.opacity(0.86),
-                            HasanaTheme.reflection.opacity(0.72),
-                            HasanaTheme.gold.opacity(0.72)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            Text("ح")
-                .font(.system(size: 46, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .shadow(color: HasanaTheme.shadow.opacity(0.24), radius: 10, x: 0, y: 5)
-        }
+        Image(selectedAppIcon.previewAssetName)
+            .resizable()
+            .scaledToFill()
+            .background(HasanaTheme.elevatedSurface.opacity(0.48))
+            .overlay(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .stroke(HasanaTheme.borderStrong.opacity(0.64), lineWidth: 0.8)
+            )
+            .shadow(color: HasanaTheme.shadow.opacity(0.20), radius: 28, x: 0, y: 16)
+            .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
 }
 

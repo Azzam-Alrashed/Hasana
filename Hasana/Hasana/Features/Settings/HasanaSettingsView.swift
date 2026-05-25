@@ -194,22 +194,16 @@ private struct AppIconChoiceButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: appIcon.previewColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    Image(systemName: appIcon.symbolName)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
-                }
+                Image(appIcon.previewAssetName)
+                    .resizable()
+                    .scaledToFill()
                 .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(HasanaTheme.border.opacity(0.46), lineWidth: 0.6)
+                }
+                .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 7, x: 0, y: 4)
 
                 Text(appIcon.title(for: language))
                     .font(.system(size: 14, weight: .semibold))
