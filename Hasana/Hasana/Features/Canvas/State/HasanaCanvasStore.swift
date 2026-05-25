@@ -35,6 +35,11 @@ final class HasanaCanvasStore {
         save()
     }
 
+    func clearCanvas() {
+        nodes = []
+        save()
+    }
+
     func updateViewport(offset: CGSize, scale: CGFloat) {
         viewportOffset = offset
         viewportScale = scale

@@ -7,7 +7,7 @@ struct CommandPaletteView: View {
     var body: some View {
         ZStack {
             if viewModel.isPresented {
-                HasanaTheme.overlayScrim.opacity(0.34)
+                HasanaTheme.overlayScrim.opacity(0.18)
                     .ignoresSafeArea()
                     .onTapGesture {
                         viewModel.setPresented(false)
@@ -17,43 +17,44 @@ struct CommandPaletteView: View {
                 VStack(spacing: 0) {
                     searchBar
 
-                    Divider()
-                        .overlay(HasanaTheme.border.opacity(0.38))
+                    if viewModel.hasResults {
+                        Divider()
+                            .overlay(HasanaTheme.border.opacity(0.24))
 
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            CommandResultsList(
-                                sections: viewModel.sections,
-                                isSelected: viewModel.isSelected,
-                                onConfirm: viewModel.confirm
-                            )
-                        }
-                        .frame(maxHeight: 420)
-                        .onChange(of: viewModel.selectedIndex) { _, newIndex in
-                            let results = viewModel.results
-                            guard newIndex >= 0, newIndex < results.count else { return }
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                CommandResultsList(
+                                    sections: viewModel.sections,
+                                    isSelected: viewModel.isSelected,
+                                    onConfirm: viewModel.confirm
+                                )
+                                .padding(.bottom, 6)
+                            }
+                            .frame(maxHeight: 280)
+                            .onChange(of: viewModel.selectedIndex) { _, newIndex in
+                                let results = viewModel.results
+                                guard newIndex >= 0, newIndex < results.count else { return }
 
-                            withAnimation {
-                                proxy.scrollTo(results[newIndex].id, anchor: .center)
+                                withAnimation {
+                                    proxy.scrollTo(results[newIndex].id, anchor: .center)
+                                }
                             }
                         }
                     }
-
-                    footer
                 }
                 .background(HasanaTheme.paletteBackground)
                 .background(.ultraThinMaterial)
-                .frame(maxWidth: 520)
-                .padding(.horizontal, 16)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .frame(maxWidth: 480)
+                .padding(.horizontal, 24)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(HasanaTheme.border.opacity(0.9), lineWidth: 0.7)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(HasanaTheme.border.opacity(0.5), lineWidth: 0.8)
                 )
-                .shadow(color: HasanaTheme.shadow.opacity(0.24), radius: 28, x: 0, y: 16)
+                .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 24, x: 0, y: 12)
                 .transition(.asymmetric(
-                    insertion: .scale(scale: 0.94).combined(with: .opacity),
-                    removal: .scale(scale: 0.94).combined(with: .opacity)
+                    insertion: .scale(scale: 0.96).combined(with: .opacity),
+                    removal: .scale(scale: 0.96).combined(with: .opacity)
                 ))
                 .onAppear {
                     isFocused = true
@@ -72,10 +73,10 @@ struct CommandPaletteView: View {
                 }
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.82), value: viewModel.isPresented)
+        .animation(.spring(response: 0.28, dampingFraction: 0.85), value: viewModel.isPresented)
         .onChange(of: viewModel.isPresented) { _, isPresented in
             if isPresented {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     isFocused = true
                 }
             }
@@ -85,35 +86,25 @@ struct CommandPaletteView: View {
     private var searchBar: some View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(HasanaTheme.gold)
-                .frame(width: 26, height: 26)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(HasanaTheme.textMuted)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("أوامر حسنة")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(HasanaTheme.textMuted)
-                    .textCase(.uppercase)
-                    .accessibilityHidden(true)
-
-                TextField(
-                    "ابحث عن أمر أو اكتب ما تحتاجه",
-                    text: Binding(
-                        get: { viewModel.query },
-                        set: { viewModel.query = $0 }
-                    )
+            TextField(
+                "اكتب فكرة جديدة أو ابحث...",
+                text: Binding(
+                    get: { viewModel.query },
+                    set: { viewModel.query = $0 }
                 )
-                    .textFieldStyle(.plain)
-                    .focused($isFocused)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(HasanaTheme.textPrimary)
-                    .tint(HasanaTheme.accent)
-                    .submitLabel(.done)
-                    .accessibilityLabel("البحث في أوامر حسنة")
-                    .onSubmit {
-                        viewModel.confirmSelection()
-                    }
+            )
+            .textFieldStyle(.plain)
+            .focused($isFocused)
+            .font(.system(size: 16, weight: .regular))
+            .foregroundStyle(HasanaTheme.textPrimary)
+            .tint(HasanaTheme.accent)
+            .submitLabel(.done)
+            .onSubmit {
+                viewModel.confirmSelection()
             }
 
             if viewModel.isSearching {
@@ -122,32 +113,14 @@ struct CommandPaletteView: View {
                     isFocused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(HasanaTheme.textMuted)
-                        .frame(width: 32, height: 32)
+                        .font(.system(size: 16))
+                        .foregroundStyle(HasanaTheme.textMuted.opacity(0.7))
                 }
                 .buttonStyle(.plain)
-                    .accessibilityLabel("مسح البحث")
             }
         }
-        .padding(16)
-    }
-
-    private var footer: some View {
-        HStack(spacing: 12) {
-            Label("تنقل", systemImage: "arrow.up.arrow.down")
-            Label("فتح", systemImage: "return")
-            Label("إغلاق", systemImage: "escape")
-            Spacer(minLength: 0)
-        }
-        .font(.system(size: 11, weight: .semibold))
-        .foregroundStyle(HasanaTheme.textMuted)
-        .labelStyle(.titleAndIcon)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(HasanaTheme.accentSoft.opacity(0.44))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("استخدم الأسهم للتنقل، والرجوع للفتح، والهروب للإغلاق")
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }
 
@@ -157,18 +130,8 @@ private struct CommandResultsList: View {
     let onConfirm: (CommandPaletteResult) -> Void
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: 6) {
+        LazyVStack(alignment: .leading, spacing: 4) {
             ForEach(sections) { section in
-                if let title = section.title {
-                    Text(title)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(HasanaTheme.textMuted)
-                        .textCase(.uppercase)
-                        .padding(.horizontal, 18)
-                        .padding(.top, 10)
-                        .accessibilityHidden(true)
-                }
-
                 ForEach(section.results) { result in
                     ResultRow(
                         result: result,
@@ -180,7 +143,7 @@ private struct CommandResultsList: View {
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
     }
 }
 
@@ -208,85 +171,32 @@ private struct CommandRow: View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
                 Image(systemName: command.icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(iconColor)
-                    .frame(width: 34, height: 34)
-                    .background(iconColor.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityHidden(true)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(isSelected ? HasanaTheme.accent : HasanaTheme.textMuted)
+                    .frame(width: 28, height: 28)
+                    .background(isSelected ? HasanaTheme.accent.opacity(0.12) : HasanaTheme.textMuted.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(command.title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(HasanaTheme.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                Text(command.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(HasanaTheme.textPrimary)
 
-                        Text(command.category.title)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(iconColor)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(iconColor.opacity(0.12))
-                            .clipShape(Capsule())
-                            .lineLimit(1)
-                    }
+                Spacer()
 
-                    Text(command.subtitle)
-                        .font(.system(size: 12))
-                        .foregroundStyle(HasanaTheme.textMuted)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                if isSelected {
+                    Image(systemName: "return")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(HasanaTheme.accent)
                 }
-
-                Spacer(minLength: 12)
-
-                trailingHint
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(minHeight: 58)
-            .background(rowBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(isSelected ? HasanaTheme.accent.opacity(0.45) : Color.clear, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
+            .padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .background(isSelected ? HasanaTheme.accentSoft.opacity(0.48) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 8)
-        .accessibilityLabel("\(command.title), \(command.category.title)")
-        .accessibilityHint(command.subtitle)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    @ViewBuilder
-    private var trailingHint: some View {
-        if isSelected {
-            Image(systemName: "return")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(HasanaTheme.accent)
-                .frame(width: 26, height: 26)
-                .background(HasanaTheme.accentSoft.opacity(0.78))
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .accessibilityHidden(true)
-        } else if let shortcutHint = command.shortcutHint {
-            Text(shortcutHint)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(HasanaTheme.textMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-    }
-
-    private var rowBackground: Color {
-        isSelected ? HasanaTheme.accentSoft.opacity(0.82) : HasanaTheme.elevatedSurface.opacity(0.4)
-    }
-
-    private var iconColor: Color {
-        HasanaTheme.categoryColor(command.category)
+        .padding(.horizontal, 6)
     }
 }
 
@@ -302,54 +212,33 @@ private struct PromptRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
-                Image(systemName: "text.bubble")
-                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(HasanaTheme.accent)
-                    .frame(width: 34, height: 34)
-                    .background(HasanaTheme.accentSoft.opacity(0.74))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .accessibilityHidden(true)
+                    .frame(width: 28, height: 28)
+                    .background(HasanaTheme.accent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("حفظ كأولوية")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(HasanaTheme.textPrimary)
-                        .lineLimit(1)
+                Text("أنشئ بطاقة: \"\(trimmedPrompt)\"")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(HasanaTheme.textPrimary)
+                    .lineLimit(1)
 
-                    Text(trimmedPrompt)
-                        .font(.system(size: 12))
-                        .foregroundStyle(HasanaTheme.textMuted)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 12)
+                Spacer()
 
                 if isSelected {
                     Image(systemName: "return")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(HasanaTheme.accent)
-                        .frame(width: 26, height: 26)
-                        .background(HasanaTheme.accentSoft.opacity(0.78))
-                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        .accessibilityHidden(true)
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(minHeight: 58)
-            .background(isSelected ? HasanaTheme.accentSoft.opacity(0.82) : HasanaTheme.elevatedSurface.opacity(0.4))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(isSelected ? HasanaTheme.accent.opacity(0.45) : Color.clear, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
+            .padding(.vertical, 8)
+            .frame(minHeight: 44)
+            .background(isSelected ? HasanaTheme.accentSoft.opacity(0.48) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 8)
-        .accessibilityLabel("حفظ كأولوية")
-        .accessibilityHint(trimmedPrompt)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .padding(.horizontal, 6)
     }
 }

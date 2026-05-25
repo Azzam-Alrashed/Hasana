@@ -24,18 +24,19 @@ struct RootView: View {
             )
 
             // Floating Command (Overlay)
+            // Floating Command (Overlay)
             FloatingCommandButton(
                 onTap: {
                     commandPalette.setPresented(true)
                 },
                 onLogGoodDeed: {
-                    handle(.logGoodDeed)
+                    handle(.clearCanvas)
                 },
                 onSetIntention: {
-                    handle(.setIntention)
+                    handle(.resetView)
                 },
                 onReflect: {
-                    handle(.reflect)
+                    commandPalette.setPresented(true)
                 }
             )
             .environment(\.layoutDirection, .leftToRight)
@@ -57,15 +58,23 @@ struct RootView: View {
 
         commandPalette.onSubmitPrompt = { prompt in
             withAnimation(.spring(response: 0.46, dampingFraction: 0.82)) {
-                let newNode = canvasStore.addIdea(prompt: prompt, viewport: viewport)
-                canvasStore.requestFocus(on: newNode.commandID ?? .openToday)
+                let _ = canvasStore.addIdea(prompt: prompt, viewport: viewport)
             }
         }
     }
 
     private func handle(_ commandID: HasanaCommandID) {
-        // Focus the node on the canvas when the action is triggered
-        canvasStore.requestFocus(on: commandID)
+        switch commandID {
+        case .resetView:
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.82)) {
+                viewport.reset(offset: .zero, scale: 1.0)
+                canvasStore.updateViewport(offset: .zero, scale: 1.0)
+            }
+        case .clearCanvas:
+            withAnimation(.spring()) {
+                canvasStore.clearCanvas()
+            }
+        }
     }
 }
 
