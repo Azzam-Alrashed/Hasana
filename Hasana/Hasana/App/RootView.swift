@@ -38,6 +38,7 @@ struct RootView: View {
                     handle(.reflect)
                 }
             )
+            .environment(\.layoutDirection, .leftToRight)
 
             // Command Palette (Overlay)
             CommandPaletteView(viewModel: commandPalette)
