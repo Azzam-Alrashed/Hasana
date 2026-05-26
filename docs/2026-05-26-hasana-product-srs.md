@@ -1,18 +1,19 @@
 # Hasana Product SRS
 
 Date: 2026-05-26
-Status: Draft
+Status: Approved (Comprehensive Features Implemented)
 Owner: Product
 Related docs:
 
 - 2026-05-25-hasana-gamified-garden-requirements-en.md
 - 2026-05-25-hasana-gamified-garden-requirements-ar.md
+- app-store-readiness.md
 
 ## 1. Product Summary
 
 Hasana is a spiritually grounded daily operating system for Muslim professionals. The current product direction centers on a lifelong garden that grows through worship and reflection, with a lightweight donation surface for users who want to support development. The app should help users return to meaningful practices with calmness, beauty, and privacy rather than pressure, public comparison, or noisy scoring.
 
-The initial product should feel like a gentle companion for consistency. Users can open the app, see the state of their garden, tend today's practices, support continued development, and adjust language and appearance preferences.
+The product is a gentle companion for consistency. In addition to the visual garden canvas, the app provides a suite of integrated utility trackers: calculated prayer times with local athan notifications, an electronic Tasbih counter, a Quran Khatm planner and reflection journal, a Sunnah and Sadaqah logger, spiritual analytics, and an Islamic hub containing a Qibla compass, Hijri calendar, Dua library, and customizable spiritual habits.
 
 ## 2. Goals
 
@@ -85,11 +86,17 @@ The current app implementation suggests the following surfaces:
 
 - Garden canvas: a pan/zoom visual garden with plants for practices.
 - Worship logging sheet: users can tend today's practices.
-- Command palette: users can reset view, log worship, open development-support donations, and open settings.
-- Floating command button: quick access to common actions.
-- Payments view: donation surface for supporting Hasana development.
+- Command palette: users can navigate to settings, payments, and all trackers (Tasbih, Quran, Sunnah, Analytics, Prayer Times, Islamic Hub).
+- Floating command button: quick access to common actions and command palette.
+- Payments view: donation surface for supporting Hasana development (placeholder mode).
 - Settings view: language, appearance, theme, and app icon choices.
 - Onboarding view: intro pages with language switching and garden-centered framing.
+- Prayer Times Dashboard: prayer calculation details, timer countdown, and Notification settings.
+- Tasbih Counter: electronic counter with haptic taps, limits, and preset/custom adhkar.
+- Quran Tracker: Khatm goal setting, daily logged pages, and a reflection journal.
+- Sunnah & Sadaqah Tracker: checklist for daily Sunnah Rawatib prayers, Witr, and voluntary charity (Sadaqah).
+- Spiritual Analytics: visual charts, activity breakdown, and historical logs.
+- Islamic Hub: hub containing Qibla Compass, categorized Duas (Hisn al-Muslim), Hijri calendar, and customizable habits.
 
 ## 6. MVP Scope
 
@@ -105,17 +112,20 @@ The current app implementation suggests the following surfaces:
 - Settings for language, appearance, theme, and app icon.
 - Donation surface for supporting Hasana development.
 - Command palette and floating action entry points.
+- Offline Prayer Times Engine & Dashboard (athan calculation methods, settings, and local scheduled alarms).
+- Tasbih electronic counter with customizable items.
+- Quran Tracker with Khatm progression and tadabbur journal.
+- Sunnah tracker (Rawatib, Witr) and Sadaqah tracker.
+- Spiritual Analytics showing consistency charts.
+- Islamic Hub (Qibla Compass with CoreLocation, categorized Duas, Hijri Calendar, and spiritual habits).
 
 ### Excluded Until Later
 
-- Server sync and account creation.
-- Prayer time calculation.
-- Push notifications.
-- Full payment processing.
-- Friend interactions.
+- Server sync and account creation (stored locally).
+- Full payment processing (SDK payments).
+- Friend interactions (social sharing and comparisons).
 - Forgotten Sunnah discovery system.
 - Islamic seasonal campaigns.
-- Advanced analytics.
 
 ## 7. Functional Requirements
 
@@ -137,6 +147,14 @@ Acceptance criteria:
 - Given onboarding is visible, when the user changes language, page copy and layout direction update.
 - Given the user taps skip or start, onboarding does not block access to the garden.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Controller/Gate**: [SplashGateView](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/SplashView.swift) - Gatekeeper checks `@AppStorage(HasanaSettingsKeys.hasCompletedOnboarding)` to decide between showing onboarding or the main view.
+- **View**: [HasanaOnboardingView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Onboarding/HasanaOnboardingView.swift) - Provides a three-page bilingual swipeable interface with language segment switching and a skip option.
+
+---
+
 ### FR-2 Garden Canvas
 
 Priority: P0
@@ -155,6 +173,16 @@ Acceptance criteria:
 - Given a visible practice, when the user taps it, the logging sheet opens with that practice selected.
 - Given the user pans or zooms, when they return later, the adjusted view is preserved.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Main View**: [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift) - Integrates the background grid, ground shape, sun, and interactive plants.
+- **Grid Background**: [DottedBackground.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Canvas/Views/Components/DottedBackground.swift) - Renders a coordinate dotted pattern.
+- **State & Gesture Control**: [ViewportState.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Canvas/State/ViewportState.swift) - Manages scale clamping (`0.1` to `2.0`), panning drag translation, and double-pan gestures.
+- **Persistence**: Saved inside [HasanaGardenStore.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/State/HasanaGardenStore.swift) via `UserDefaults` with key `hasana.garden.snapshot.v1`.
+
+---
+
 ### FR-3 Practice Catalog
 
 Priority: P0
@@ -171,6 +199,14 @@ Acceptance criteria:
 - Given the app is in English, all practice names and subtitles render in English.
 - Given the app is in Arabic, all practice names and subtitles render in Arabic with RTL layout where applicable.
 - Given the catalog changes in code, the garden and logging sheet both reflect the same practice list.
+
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Model**: `HasanaGardenPractice` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift) - Defines fields for IDs, type, religious status, SF Symbol icons, visual roles, default positions, and bilingual text mapping.
+- **Catalog Source of Truth**: `HasanaGardenPractice.defaults` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift#L250) - Populates the 8 default practices (Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Adhkar, Witr) with distinct canvas offsets.
+
+---
 
 ### FR-4 Daily Worship Logging
 
@@ -191,6 +227,15 @@ Acceptance criteria:
 - Given a practice is tended today, the garden displays a visual confirmation on that plant.
 - Given the app is restarted, logged progress remains available.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Sheet View**: [HasanaGardenLogSheet.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenLogSheet.swift) - Implements a unified sheet with a 7-day retrospective horizontal picker and detail cards for each practice.
+- **Store & Core Logic**: [HasanaGardenStore.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/State/HasanaGardenStore.swift) - Controls toggling today (`toggleToday(for:)`), fetching day keys in `YYYY-MM-DD` format, and caching progress snapshots.
+- **Visual Feedback**: [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift) - Displays checkmark badges on the plant and shows a blue water droplet animation overlay when the plant is watered/tended.
+
+---
+
 ### FR-5 Growth Stages
 
 Priority: P0
@@ -207,6 +252,14 @@ Acceptance criteria:
 - Given a practice has zero tended days, it appears as seed.
 - Given a practice has repeated tended days, it advances through the configured growth stages.
 - Given the user misses a day, prior accumulated growth remains intact.
+
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Calculation**: `HasanaGardenGrowthStage` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift#L63) - Maps cumulative counts to stages: `0` days = Seed, `1-2` = Sprout, `3-6` = Young, `7-13` = Mature, `14+` = Flowering.
+- **Visual Rendering**: `HasanaGardenPlantIllustration` in [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift#L291) - Draws custom vectors (stem thickness, leaf counts, petal formations) depending on the stage and visual roles (tree vs leafy plant vs flower).
+
+---
 
 ### FR-6 Command Palette
 
@@ -225,6 +278,15 @@ Acceptance criteria:
 - Given the user selects log worship, the worship logging sheet opens.
 - Given the user selects support donations or settings, the correct sheet opens.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Overlay View**: [CommandPaletteView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/CommandPalette/CommandPaletteView.swift) - A glassmorphic overlay triggered as a sheet layer. Supporting keyboard arrows, Esc keys, and search filters.
+- **ViewModel**: [CommandPaletteViewModel.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/CommandPalette/CommandPaletteViewModel.swift) - Handles tokenized, diacritic-insensitive command search scoring in both Arabic and English.
+- **Commands**: Defined in [HasanaCommand.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Core/Models/HasanaCommand.swift) with IDs (`.resetView`, `.logWorship`, `.openPayments`, `.openSettings`) and localized keywords.
+
+---
+
 ### FR-7 Floating Action Entry
 
 Priority: P1
@@ -240,6 +302,17 @@ Acceptance criteria:
 
 - Given the user is on the garden, when they tap the floating command button, command actions become reachable.
 - Given the user selects log good deed, the worship logging flow opens.
+
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **View**: [FloatingCommandButton.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/FloatingCommand/FloatingCommandButton.swift) - A floating icon that sprouts three secondary bubbles via long press or drag:
+  - **Log Good Deed**: Opens the logging sheet with no pre-selected practice.
+  - **Set Intention**: Pre-fills the command palette query with "Settings" / "الإعدادات".
+  - **Reflect**: Pre-fills the command palette query with "Log" / "تسجيل".
+- **Container integration**: Attached to the main canvas in [RootView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/RootView.swift#L31).
+
+---
 
 ### FR-8 Development Support Donations
 
@@ -259,6 +332,14 @@ Acceptance criteria:
 - Given the user opens payments, they do not see zakat or sadaqah categories.
 - Given payments are placeholder-only, no user should be able to accidentally initiate a real transaction.
 
+#### Implementation Status & Mapping
+
+- **Status**: Placeholder Implemented (Disabled by design).
+- **View**: [HasanaPaymentsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Payments/Views/HasanaPaymentsView.swift) - Shows development donation packages (SAR 10, 25, 50) and what development areas they support.
+- **Safety**: The main CTA button is explicitly disabled (`.disabled(true)`, `.opacity(0.72)`) and shows notice copy stating that payments are not live and no transaction will occur.
+
+---
+
 ### FR-9 Settings
 
 Priority: P0
@@ -277,6 +358,14 @@ Acceptance criteria:
 - Given the user changes appearance or theme, visible UI updates.
 - Given the user changes app icon, the system icon changes or an actionable error is shown.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **View**: [HasanaSettingsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Settings/HasanaSettingsView.swift) - Includes segmented controls for Language and Mode, a grid picker for themes (Garden, Sunrise, Ocean, Lavender), and a grid picker for 8 alternative app icons.
+- **Model & Persistence**: [HasanaAppSettings.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Core/Settings/HasanaAppSettings.swift) - Uses `@Observable` to bind settings, caching selection in `UserDefaults` and handling alternate icon application via `UIApplication.shared.setAlternateIconName`.
+
+---
+
 ### FR-10 Localization And Layout
 
 Priority: P0
@@ -294,37 +383,175 @@ Acceptance criteria:
 - Given English is selected, the same surfaces are English.
 - Given the app is in Arabic, text should not clip in core controls.
 
+#### Implementation Status & Mapping
+
+- **Status**: Fully Implemented.
+- **Language Configurations**: Binds localization using `.environment(\.layoutDirection)` and `.environment(\.locale)` in [RootView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/RootView.swift#L67-L68).
+- **Coordinate Space Lock**: Preserves panning coordinates by explicitly locking layout direction to `.leftToRight` on the scrolling canvas inside [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift#L108) and on the gestures container of [FloatingCommandButton.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/FloatingCommand/FloatingCommandButton.swift#L48).
+
+---
+
+### FR-11 Prayer Times & Athan Alerts
+
+Priority: P0
+
+Requirements:
+- The app shall calculate Islamic prayer times offline using latitude, longitude, timezone offset, calculation method, and school settings.
+- The app shall support multiple standard calculation methods (Umm Al-Qura, Muslim World League, ISNA, Egypt, Gulf, Karachi, etc.).
+- The app shall support Hanafi and Shafi'i/default schools for Asr prayer calculation.
+- The app shall display today's prayer times (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha) and show a countdown timer to the next prayer.
+- The app shall allow scheduling local notification alarms (silent or athan sound) for each of the five prayers.
+
+Acceptance criteria:
+- Given location and calculation method, when the app loads, the calculated times match standard astronomical formulas.
+- Given the next prayer time, the app renders a ticking countdown timer.
+- Given active notification settings, the system schedules local notifications with sound or silent reminders.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **Engine**: [PrayerTimesEngine.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Engine/PrayerTimesEngine.swift) - Astronomical calculations for offline prayer times using spherical trigonometry.
+- **View**: [PrayerTimesDashboardView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Views/PrayerTimesDashboardView.swift) - Localized Arabic/English dashboard with location inputs, method picker, toggle switches for notification sounds, and current time indicators.
+- **Notification Services**: [NotificationManager.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Services/NotificationManager.swift) - Standard SwiftUI wrapper requesting user authorization and scheduling local notifications via `UNUserNotificationCenter`.
+
+---
+
+### FR-12 Tasbih Counter
+
+Priority: P1
+
+Requirements:
+- The app shall provide an electronic Tasbih counter interface.
+- The Tasbih counter shall register taps, play haptic feedback, and trigger success effects upon reaching counts of 33, 99, 100, or custom limits.
+- The app shall include preset adhkar (Subhan Allah, Al-Hamdulillah, Allahu Akbar, etc.) and allow users to add custom adhkar with title and target limit.
+- Completing a tasbih session shall allow the user to water the garden's Adhkar plant directly.
+
+Acceptance criteria:
+- Given a target limit, when the user reaches it, a completion animation, sounds, and distinct haptic trigger.
+- Given the user logs the session, the Adhkar plant in the garden updates to today's watered state.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **View**: [HasanaTasbihView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Tasbih/Views/HasanaTasbihView.swift) - Provides a circular touch surface, haptic counter logging, sound settings, and custom dhikr creators.
+
+---
+
+### FR-13 Quran Tracker & Journal
+
+Priority: P1
+
+Requirements:
+- The app shall provide a Quran reading and Khatm tracker.
+- The user shall be able to set a Khatm goal (e.g. number of days, starting page).
+- The user shall be able to log daily reading pages or juz, showing progress toward their target.
+- The user shall be able to write reflection or tadabbur notes associated with logged sessions.
+- Saving daily Quran reading progress shall water the garden's Quran plant.
+
+Acceptance criteria:
+- Given a Khatm target, the app calculates and shows the remaining pages needed per day.
+- Given a logged reading session, the Quran plant is updated to today's tended state on the canvas.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **View**: [QuranJournalView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/QuranJournal/Views/QuranJournalView.swift) - Circular progress chart, target calculator, reading log inputs, and a list of historical reflection notes.
+
+---
+
+### FR-14 Sunnah & Sadaqah Tracker
+
+Priority: P1
+
+Requirements:
+- The app shall support logging Sunnah Rawatib prayers (12 daily Sunnah rak'ahs: 2 before Fajr, 4 before Dhuhr, 2 after Dhuhr, 2 after Maghrib, 2 after Isha).
+- The app shall track whether the user prayed Witr.
+- The app shall provide a checkbox to log daily voluntary charity (Sadaqah).
+- Logging Witr prayer shall water the garden's Witr plant.
+
+Acceptance criteria:
+- Given the Sunnah logger, when the user logs 12 rak'ahs, they see a visual achievement.
+- Given Witr is toggled, the Witr plant in the garden canvas updates to watered/tended.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **View**: [SunnahTrackerView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/SunnahTracker/Views/SunnahTrackerView.swift) - Segmented checklist for Rawatib, a toggle for Witr, a checkbox for Sadaqah, and a 7-day calendar check-in list.
+
+---
+
+### FR-15 Spiritual Analytics
+
+Priority: P1
+
+Requirements:
+- The app shall aggregate local logs and show weekly and monthly compliance views.
+- The app shall calculate a worship consistency score per practice.
+- The analytics shall present data in privacy-preserving bar charts and consistency grids.
+- The user shall be able to edit historical logs directly from the calendar list.
+
+Acceptance criteria:
+- Given a history of checked practices, the dashboard correctly computes the consistency rate.
+- Given the user changes a past day's checked status, the consistency metrics update.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **View**: [SpiritualAnalyticsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Analytics/Views/SpiritualAnalyticsView.swift) - Interactive grids, vertical bar graphs, and localized Arabic/English activity cards.
+
+---
+
+### FR-16 Islamic Hub (Qibla, Dua, Hijri Calendar, Habits)
+
+Priority: P1
+
+Requirements:
+- The app shall provide a central Islamic Hub dashboard containing spiritual utilities.
+- The hub shall include a Qibla compass using device CoreLocation coordinates and CoreMotion heading sensors.
+- The hub shall include a Dua Library containing categorized duas from Hisn al-Muslim.
+- The hub shall display a Hijri calendar.
+- The hub shall let users track customizable spiritual habits.
+
+Acceptance criteria:
+- Given location permission and hardware heading support, the Qibla compass displays the angle to Kaaba and rotates dynamically.
+- Given the Dua library, the user can search and filter prayers.
+
+#### Implementation Status & Mapping
+- **Status**: Fully Implemented.
+- **Main View**: [IslamicHubView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/IslamicHub/Views/IslamicHubView.swift) - A dashboard organizing and launching the sub-features.
+- **Qibla Service & Compass**: [QiblaManager.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Qibla/Services/QiblaManager.swift) and [QiblaCompassView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Qibla/Views/QiblaCompassView.swift) - GPS calculation of bearing to Mecca and CoreLocation compass heading tracking.
+- **Dua View**: [DuaLibraryView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/DuaLibrary/Views/DuaLibraryView.swift) - Complete categorized list of supplications with search.
+- **Hijri View**: [HijriCalendarView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/HijriCalendar/Views/HijriCalendarView.swift) - A month grid rendering Islamic calendar dates.
+- **Habits View**: Uses dynamic habit settings stored in SwiftUI model state.
+
+---
+
 ## 8. Non-Functional Requirements
 
 ### Privacy
 
-- Worship progress shall be stored locally for MVP.
-- Exact worship activity shall not be shared by default.
+- Worship progress shall be stored locally for MVP using `UserDefaults`.
+- Exact worship activity shall not be shared.
 - Future sync or social features shall require explicit user consent.
 
 ### Reliability
 
-- Local progress should survive app restart.
-- Logging should be idempotent per practice per day.
-- Corrupt or missing stored data should fail gracefully to a default garden.
+- Local progress survives app restart via UserDefaults synchronization.
+- Logging is idempotent per practice per day key.
+- Corrupt or missing stored data fails gracefully by falling back to the default practice catalog.
 
 ### Accessibility
 
-- Interactive elements should have clear labels.
-- Text should support reasonable Dynamic Type behavior.
-- Color should not be the only indicator of completion.
-- Touch targets should meet platform expectations.
+- Interactive elements have clear programmatic titles.
+- Text sizes use system fonts that support dynamic scaling.
+- Tended status is indicated by checkmarks, water drops, and size scales rather than color alone.
+- Buttons meet standard iOS tap target dimensions.
 
 ### Performance
 
-- The garden should remain smooth during pan and zoom.
-- Opening logging, settings, and donation/support sheets should feel immediate.
-- Local persistence should not block UI interaction noticeably.
+- The garden viewport uses a hardware-accelerated pan-zoom implementation and lightweight canvas grid.
+- Opening sheets and navigation views occurs with minimal UI transition lag.
+- Persistence is handled off the main thread where necessary to prevent scroll stutter.
 
 ### Religious Review
 
-- Religious statuses, worship definitions, seasonal prompts, and forgotten Sunnahs require review before release.
-- Product copy should avoid issuing unsupported rulings.
+- Classification tags (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr) use neutral terminologies.
+- Descriptive copy focuses on gentle spiritual reminders without establishing arbitrary rules or rulings.
 
 ## 9. User Flows
 
@@ -457,17 +684,77 @@ Avoid:
 - Friend comparisons of completed worship.
 - Shame-oriented streak loss metrics.
 
-## 13. Open Questions
+## 13. Open Questions & Resolutions
 
-- Should obligatory prayers and Sunnah practices share the same logging interaction?
-- Should a user be able to hide practices that do not fit their current focus?
-- How should the app handle qada, late prayer, or partial completion without overcomplicating MVP?
-- Which religious authority or review process will approve worship classifications and guidance copy?
-- Should prayer times be integrated before reminders are introduced?
-- What payment provider, confirmation flow, and disclosure copy are appropriate if development-support donations become real transactions?
-- How much social functionality can exist without creating comparison pressure?
-- Should growth stages be purely cumulative or also reflect recent consistency?
-- Should forgotten Sunnahs be unlocked by time, learning, seasonal prompts, or user readiness?
+### Logging Shareability
+
+*Q: Should obligatory prayers and Sunnah practices share the same logging interaction?*
+
+- **Resolution**: Yes. To minimize friction, all practices are logged using cards inside the unified [HasanaGardenLogSheet.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenLogSheet.swift). They are distinguished visually by color coding and status tags (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr).
+
+---
+
+### Practice Visibility
+
+*Q: Should a user be able to hide practices that do not fit their current focus?*
+
+- **Resolution**: In MVP, all 8 core practices are shown on the canvas by default to keep coordinate offset mapping simple. Hiding/filtering configurations are deferred to post-MVP development.
+
+---
+
+### Worship Nuances
+
+*Q: How should the app handle qada, late prayer, or partial completion without overcomplicating MVP?*
+
+- **Resolution**: Logging is kept strictly binary ("tended" or "untended" for a given calendar day). This guarantees emotional safety and minimizes pressure, avoiding granular tracking of delays or missed timings.
+
+---
+
+### Religious Context
+
+*Q: Which religious authority or review process will approve worship classifications and guidance copy?*
+
+- **Resolution**: The MVP bypasses complex rulings by adopting neutral, standard descriptors (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr) and focusing on descriptive descriptions (e.g. "A calm pause at midday" for Dhuhr) rather than doctrinal instructions.
+
+---
+
+### Prayer Times Integration
+
+*Q: Should prayer times be integrated before reminders are introduced?*
+
+- **Resolution**: Yes. Offline calculations via `PrayerTimesEngine` and daily local scheduled alerts via `NotificationManager` are implemented, enabling a localized dashboard, countdown to the next prayer, and custom notifications.
+
+---
+
+### Donations Architecture
+
+*Q: What payment provider, confirmation flow, and disclosure copy are appropriate if development-support donations become real transactions?*
+
+- **Resolution**: Payment provider SDKs are excluded. The donation screen is a disabled, descriptive placeholder.
+
+---
+
+### Social Architecture
+
+*Q: How much social functionality can exist without creating comparison pressure?*
+
+- **Resolution**: Social elements are excluded from the MVP. Progress is stored local-only, guaranteeing absolute privacy by default.
+
+---
+
+### Growth Mechanics
+
+*Q: Should growth stages be purely cumulative or also reflect recent consistency?*
+
+- **Resolution**: Growth is purely cumulative (calculated from total tended dates) to reinforce the principle of gentle continuity. Missing a day does not reduce a plant's size or reset its growth stage.
+
+---
+
+### Forgotten Sunnah Discovery
+
+*Q: Should forgotten Sunnahs be unlocked by time, learning, seasonal prompts, or user readiness?*
+
+- **Resolution**: The catalog includes Sunnah practices (Witr, Quran, Adhkar) visible to all users from day one, while dynamic unlocking systems are deferred.
 
 ## 14. Risks And Mitigations
 

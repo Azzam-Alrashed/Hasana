@@ -18,19 +18,29 @@ final class ViewportState {
         self.lastScale = scale
     }
 
+    private func clampedOffset(_ offset: CGSize) -> CGSize {
+        let maxDragX: CGFloat = 800
+        let maxDragY: CGFloat = 600
+        return CGSize(
+            width: min(max(offset.width, -maxDragX), maxDragX),
+            height: min(max(offset.height, -maxDragY), maxDragY)
+        )
+    }
+
     func reset(offset: CGSize, scale: CGFloat) {
         let clampedScale = min(max(scale, minScale), maxScale)
-        self.offset = offset
-        self.lastOffset = offset
+        let newOffset = clampedOffset(offset)
+        self.offset = newOffset
+        self.lastOffset = newOffset
         self.scale = clampedScale
         self.lastScale = clampedScale
     }
 
     func handleDragTranslation(_ translation: CGSize) {
-        offset = CGSize(
+        offset = clampedOffset(CGSize(
             width: lastOffset.width + translation.width,
             height: lastOffset.height + translation.height
-        )
+        ))
     }
 
     func handleDragChanged(_ value: DragGesture.Value) {
@@ -49,10 +59,10 @@ final class ViewportState {
         let pointY = (location.y - centerY - lastOffset.height) / lastScale
 
         scale = newScale
-        offset = CGSize(
+        offset = clampedOffset(CGSize(
             width: location.x - centerX - (pointX * newScale),
             height: location.y - centerY - (pointY * newScale)
-        )
+        ))
     }
 
     func handleMagnificationEnded() {
@@ -62,10 +72,10 @@ final class ViewportState {
 
     func flyTo(nodePosition: CGPoint, targetScale: CGFloat = 1.0) {
         let clampedScale = min(max(targetScale, minScale), maxScale)
-        let newOffset = CGSize(
+        let newOffset = clampedOffset(CGSize(
             width: -nodePosition.x * clampedScale,
             height: -nodePosition.y * clampedScale
-        )
+        ))
 
         scale = clampedScale
         lastScale = clampedScale

@@ -13,6 +13,7 @@ final class HasanaGardenStore {
     var viewportOffset: CGSize = .zero
     var viewportScale: CGFloat = 1.0
     var selectedPracticeID: HasanaGardenPracticeID?
+    var selectedDayKey: String = ""
 
     private let userDefaults: UserDefaults
     private let encoder = JSONEncoder()
@@ -26,6 +27,7 @@ final class HasanaGardenStore {
         self.userDefaults = userDefaults
         self.dayKeyProvider = dayKeyProvider
         load()
+        self.selectedDayKey = dayKeyProvider()
     }
 
     var todayKey: String {
@@ -33,7 +35,10 @@ final class HasanaGardenStore {
     }
 
     var displayState: HasanaGardenDisplayState {
-        let dayKey = todayKey
+        displayState(for: selectedDayKey)
+    }
+
+    func displayState(for dayKey: String) -> HasanaGardenDisplayState {
         var tendedTodayCount = 0
         var totalTendedDays = 0
 
@@ -70,7 +75,7 @@ final class HasanaGardenStore {
 
     func toggleToday(for practiceID: HasanaGardenPracticeID) {
         var record = progress(for: practiceID)
-        let dayKey = todayKey
+        let dayKey = selectedDayKey
 
         if record.tendedDayKeys.contains(dayKey) {
             record.tendedDayKeys.removeAll { $0 == dayKey }
@@ -81,6 +86,29 @@ final class HasanaGardenStore {
         record.tendedDayKeys = Array(Set(record.tendedDayKeys)).sorted()
         progress[practiceID] = record
         save()
+    }
+
+    func getLast7Days() -> [HasanaCalendarDay] {
+        let calendar = Calendar.current
+        let today = Date()
+        var days: [HasanaCalendarDay] = []
+
+        for i in (0..<7).reversed() {
+            if let date = calendar.date(byAdding: .day, value: -i, to: today) {
+                let components = calendar.dateComponents([.year, .month, .day], from: date)
+                let year = components.year ?? 0
+                let month = components.month ?? 0
+                let day = components.day ?? 0
+                let dayKey = String(format: "%04d-%02d-%02d", year, month, day)
+
+                let formatter = DateFormatter()
+                formatter.dateFormat = "d"
+                let dayNumber = formatter.string(from: date)
+
+                days.append(HasanaCalendarDay(id: dayKey, date: date, dayNumber: dayNumber))
+            }
+        }
+        return days
     }
 
     func updateViewport(offset: CGSize, scale: CGFloat) {

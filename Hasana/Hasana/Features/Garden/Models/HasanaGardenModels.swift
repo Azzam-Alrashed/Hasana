@@ -26,6 +26,7 @@ enum HasanaGardenReligiousStatus: String, Codable, Hashable {
     case quran
     case dhikr
     case sunnah
+    case sunnahWajib
 
     func title(for language: HasanaLanguage) -> String {
         switch (self, language) {
@@ -45,6 +46,10 @@ enum HasanaGardenReligiousStatus: String, Codable, Hashable {
             "سنة"
         case (.sunnah, .english):
             "Sunnah"
+        case (.sunnahWajib, .arabic):
+            "سنة / واجب"
+        case (.sunnahWajib, .english):
+            "Sunnah / Wajib"
         }
     }
 }
@@ -220,6 +225,19 @@ struct HasanaGardenDisplayState: Equatable {
     let totalTendedDays: Int
 }
 
+struct HasanaCalendarDay: Identifiable, Hashable {
+    let id: String // "YYYY-MM-DD"
+    let date: Date
+    let dayNumber: String
+
+    func weekdayName(for language: HasanaLanguage) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: language.localeIdentifier)
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+}
+
 struct HasanaGardenSnapshot: Codable, Equatable {
     static let currentSchemaVersion = 1
 
@@ -290,7 +308,7 @@ extension HasanaGardenPractice {
         HasanaGardenPractice(
             id: .witr,
             worshipType: .prayer,
-            religiousStatus: .sunnah,
+            religiousStatus: .sunnahWajib,
             icon: "moon.zzz.fill",
             visualRole: .flower,
             defaultPosition: CGPoint(x: 300, y: 160)

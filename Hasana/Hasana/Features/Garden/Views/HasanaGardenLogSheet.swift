@@ -16,18 +16,102 @@ struct HasanaGardenLogSheet: View {
         ]
     }
 
+    private var navigationTitleText: String {
+        if store.selectedDayKey == store.todayKey {
+            return copy.title
+        } else {
+            let calendar = Calendar.current
+            let today = Date()
+            if let yesterday = calendar.date(byAdding: .day, value: -1, to: today) {
+                let yesterdayKey = String(format: "%04d-%02d-%02d",
+                                          calendar.component(.year, from: yesterday),
+                                          calendar.component(.month, from: yesterday),
+                                          calendar.component(.day, from: yesterday))
+                if store.selectedDayKey == yesterdayKey {
+                    return language == .arabic ? "حديقة الأمس" : "Yesterday's garden"
+                }
+            }
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: language.localeIdentifier)
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+
+            let parser = DateFormatter()
+            parser.dateFormat = "yyyy-MM-dd"
+            if let date = parser.date(from: store.selectedDayKey) {
+                return formatter.string(from: date)
+            }
+
+            return copy.title
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 let displayState = store.displayState
 
                 ScrollView {
+                    // Calendar Picker Row
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(store.getLast7Days()) { day in
+                                let isSelected = store.selectedDayKey == day.id
+                                let isToday = store.todayKey == day.id
+
+                                Button {
+                                    triggerHapticFeedback(.light)
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+                                        store.selectedDayKey = day.id
+                                    }
+                                } label: {
+                                    VStack(spacing: 4) {
+                                        Text(day.weekdayName(for: language))
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(isSelected ? .white : HasanaTheme.textMuted)
+                                            .textCase(.uppercase)
+
+                                        Text(day.dayNumber)
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundStyle(isSelected ? .white : HasanaTheme.textPrimary)
+
+                                        if isToday {
+                                            Circle()
+                                                .fill(isSelected ? .white : HasanaTheme.accent)
+                                                .frame(width: 4, height: 4)
+                                        } else {
+                                            Spacer().frame(height: 4)
+                                        }
+                                    }
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .frame(minWidth: 46)
+                                    .background(
+                                        isSelected ? HasanaTheme.accent : HasanaTheme.elevatedSurface.opacity(0.8),
+                                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(isSelected ? Color.clear : HasanaTheme.border.opacity(0.54), lineWidth: 0.8)
+                                    }
+                                    .shadow(color: isSelected ? HasanaTheme.accent.opacity(0.24) : Color.clear, radius: 8, x: 0, y: 4)
+                                }
+                                .buttonStyle(CalendarPressButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
+                        .padding(.bottom, 6)
+                    }
+
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(displayState.practices) { practiceState in
                             GardenPracticeLogCard(
                                 practice: practiceState.practice,
                                 progress: practiceState.progress,
                                 isTendedToday: practiceState.isTendedToday,
+                                isTodaySelected: store.selectedDayKey == store.todayKey,
                                 isSelected: store.selectedPracticeID == practiceState.practice.id,
                                 language: language,
                                 copy: copy
@@ -41,18 +125,19 @@ struct HasanaGardenLogSheet: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                    .padding(.top, 10)
                     .padding(.bottom, 24)
                 }
                 .background(HasanaTheme.background.ignoresSafeArea())
                 .onAppear {
+                    store.selectedDayKey = store.todayKey
                     scrollToSelection(with: proxy)
                 }
                 .onChange(of: store.selectedPracticeID) {
                     scrollToSelection(with: proxy)
                 }
             }
-            .navigationTitle(copy.title)
+            .navigationTitle(navigationTitleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -82,6 +167,7 @@ private struct GardenPracticeLogCard: View {
     let practice: HasanaGardenPractice
     let progress: HasanaGardenProgress
     let isTendedToday: Bool
+    let isTodaySelected: Bool
     let isSelected: Bool
     let language: HasanaLanguage
     let copy: GardenLogCopy
@@ -95,8 +181,16 @@ private struct GardenPracticeLogCard: View {
             HasanaTheme.gold
         case .dhikr:
             HasanaTheme.reflection
-        case .sunnah:
+        case .sunnah, .sunnahWajib:
             HasanaTheme.summary
+        }
+    }
+
+    private var actionLabel: String {
+        if isTendedToday {
+            return isTodaySelected ? copy.tendedToday : (language == .arabic ? "تم" : "Tended")
+        } else {
+            return isTodaySelected ? copy.tendToday : (language == .arabic ? "ازرع" : "Tend")
         }
     }
 
@@ -155,7 +249,7 @@ private struct GardenPracticeLogCard: View {
                     Image(systemName: isTendedToday ? "checkmark.seal.fill" : "drop.fill")
                         .font(.system(size: 14, weight: .bold))
 
-                    Text(isTendedToday ? copy.tendedToday : copy.tendToday)
+                    Text(actionLabel)
                         .font(.system(size: 15, weight: .bold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
@@ -287,4 +381,19 @@ struct GardenLogCopy {
         store: HasanaGardenStore(),
         language: .english
     )
+}
+
+private struct CalendarPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.78), value: configuration.isPressed)
+    }
+}
+
+private func triggerHapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+    let generator = UIImpactFeedbackGenerator(style: style)
+    generator.prepare()
+    generator.impactOccurred()
 }

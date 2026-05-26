@@ -86,23 +86,6 @@ enum HasanaTheme {
         }
     }
 
-    static func canvasColor(_ theme: HasanaCanvasTheme) -> Color {
-        switch theme {
-        case .today:
-            idea
-        case .worship:
-            accent
-        case .reflection:
-            reflection
-        case .finance:
-            finance
-        case .idea:
-            gold
-        case .summary:
-            summary
-        }
-    }
-
     private static func adaptive(light: String, dark: String) -> Color {
         Color(UIColor { traitCollection in
             UIColor(hex: traitCollection.userInterfaceStyle == .dark ? dark : light)

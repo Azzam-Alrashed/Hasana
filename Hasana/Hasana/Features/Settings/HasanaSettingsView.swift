@@ -3,6 +3,7 @@ import SwiftUI
 struct HasanaSettingsView: View {
     @Bindable var settings: HasanaAppSettings
     @Environment(\.dismiss) private var dismiss
+    @State private var isAmbientMuted = SoundManager.shared.getMuted()
 
     private var copy: SettingsCopy {
         SettingsCopy(selectedLanguage: settings.language)
@@ -30,6 +31,16 @@ struct HasanaSettingsView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                    }
+
+                    SettingsSection(title: settings.language == .arabic ? "الصوت والبيئة" : "Sound & Ambience", icon: "speaker.wave.2.fill") {
+                        Toggle(settings.language == .arabic ? "كتم الأصوات الخلفية" : "Mute Background Sounds", isOn: Binding(
+                            get: { isAmbientMuted },
+                            set: { newValue in
+                                isAmbientMuted = newValue
+                                SoundManager.shared.setMuted(newValue)
+                            }
+                        ))
                     }
 
                     SettingsSection(title: copy.theme, icon: "paintpalette.fill") {

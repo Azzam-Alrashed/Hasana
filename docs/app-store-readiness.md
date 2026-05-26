@@ -20,10 +20,11 @@ Status: In progress
 - Debug and Release builds pass for generic iOS with code signing disabled.
 - Privacy manifest added for app-only `UserDefaults` usage.
 - No tracking domains declared.
-- No collected data types declared for the current local-only MVP.
-- Removed unused location permission copy from generated Info.plist settings.
+- No collected data types declared for the current local-only app (all calculations, user inputs, and logs remain local).
+- Location permission copy configured in Info.plist for Qibla calculation and local prayer times.
+- Notification permission configured in Info.plist for scheduling daily Athan alerts.
 - Payment/support screen remains disabled and clearly states no payment is collected.
-- Arabic and English app copy exist across the MVP screens in code.
+- Arabic and English app copy exist across all utility screens and dashboards in code.
 
 ## App Store Connect Metadata Draft
 
@@ -67,11 +68,12 @@ Hasana currently stores all worship progress locally on device using UserDefault
 
 - Create and publish a privacy policy URL that matches the local-only data model.
 - Confirm the public launch version with App Store Connect, likely `1.0.0` instead of the current `0.0.1`.
-- Capture one to ten App Store screenshots for required iPhone and iPad sizes.
+- Capture one to ten App Store screenshots for required iPhone and iPad sizes (include garden, prayer times timer, Quran reflection view, Tasbih clicker, and Islamic hub compass).
 - Complete App Store age rating questionnaire.
 - Complete export compliance answers.
 - Run manual QA on at least one small iPhone, one large iPhone, and one iPad in Arabic and English.
 - Review worship labels and religious copy before release.
+- Ensure proper user prompt strings are defined for Location and Notification permissions.
 
 ## Manual QA Checklist
 
@@ -82,7 +84,19 @@ Hasana currently stores all worship progress locally on device using UserDefault
 - Tapping each practice opens the log sheet focused on that practice.
 - Tending and untending each practice persists after relaunch.
 - Reset view recenters and persists.
-- Command palette opens logging, support, and settings.
+- Command palette opens settings, payments, and all sub-feature dashboards.
 - Settings language, appearance, theme, and app icon choices persist.
 - Support screen cannot initiate a real payment.
 - Dynamic Type does not clip primary actions on common device sizes.
+- Location permission prompts when viewing Qibla compass or opening Prayer Times.
+- Notification permission prompts when enabling Athan alarms.
+- Prayer Times calculation updates correctly when location coordinates or methods are changed.
+- Tasbih Counter increments on tap, plays correct haptics, and handles target-reached triggers (33/99/100).
+- Custom Dhikr can be added, deleted, and tracked.
+- Quran Khatm target can be configured and daily pages logged.
+- Reflection notes are successfully saved in the Quran journal list.
+- Sunnah Checklist logs 12 rawatib prayers, Witr, and Sadaqah, and updates Witr plant on the garden canvas.
+- Spiritual Analytics charts load data correctly and represent consistency percentages.
+- Qibla compass pointer rotates dynamically according to device headings.
+- Categorized Duas can be browsed, searched, and read in English and Arabic.
+- Hijri calendar correctly matches the corresponding Gregorian dates.

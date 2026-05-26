@@ -138,7 +138,7 @@ private struct HasanaGardenPlantView: View {
             HasanaTheme.gold
         case .dhikr:
             HasanaTheme.reflection
-        case .sunnah:
+        case .sunnah, .sunnahWajib:
             HasanaTheme.summary
         }
     }
