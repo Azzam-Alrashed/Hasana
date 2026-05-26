@@ -172,7 +172,7 @@ final class HasanaGardenNoise {
 
 // MARK: - Catmull-Rom Spline Path Calculation
 /// Computes smooth flying paths passing through a sequence of target landing points.
-public final class HasanaGardenSplinePath {
+final class HasanaGardenSplinePath {
     var controlPoints: [SIMD3<Float>] = []
     
     init(points: [SIMD3<Float>]) {
@@ -287,7 +287,7 @@ struct GardenCreatureConfig: Codable {
     var energyDepletionRate: Float // Energy drain per second flying
     var energyRestorationRate: Float // Energy gain per second resting
     
-    public static func defaultConfig(for type: GardenCreatureType) -> GardenCreatureConfig {
+    static func defaultConfig(for type: GardenCreatureType) -> GardenCreatureConfig {
         switch type {
         case .butterfly:
             return GardenCreatureConfig(
@@ -369,22 +369,22 @@ struct GardenCreatureConfig: Codable {
 
 /// A pollen structure carrying the genetic print of the visited plant.
 struct GardenPollen: Codable, Equatable, Hashable {
-    public let sourcePlantID: HasanaGardenPracticeID
-    public let timestamp: Date
-    public let quality: Float // Determined by the growth stage and status of the source plant
+    let sourcePlantID: HasanaGardenPracticeID
+    let timestamp: Date
+    let quality: Float // Determined by the growth stage and status of the source plant
 }
 
 /// A record representing a successful cross-pollination event in the garden.
 struct GardenPollinationRecord: Identifiable, Codable, Equatable, Hashable {
-    public let id: UUID
-    public let pollinatorID: UUID
-    public let pollinatorType: GardenCreatureType
-    public let targetPlantID: HasanaGardenPracticeID
-    public let sourcePlantID: HasanaGardenPracticeID
-    public let pollenQuality: Float
-    public let timestamp: Date
+    let id: UUID
+    let pollinatorID: UUID
+    let pollinatorType: GardenCreatureType
+    let targetPlantID: HasanaGardenPracticeID
+    let sourcePlantID: HasanaGardenPracticeID
+    let pollenQuality: Float
+    let timestamp: Date
     
-    public init(pollinatorID: UUID, pollinatorType: GardenCreatureType, targetPlantID: HasanaGardenPracticeID, sourcePlantID: HasanaGardenPracticeID, pollenQuality: Float) {
+    init(pollinatorID: UUID, pollinatorType: GardenCreatureType, targetPlantID: HasanaGardenPracticeID, sourcePlantID: HasanaGardenPracticeID, pollenQuality: Float) {
         self.id = UUID()
         self.pollinatorID = pollinatorID
         self.pollinatorType = pollinatorType
@@ -401,15 +401,15 @@ enum GardenLandingType: String, Codable {
     case flower
     case tree
     case stone
-    public var title: String { rawValue }
+    var title: String { rawValue }
 }
 
 struct GardenLandingPoint {
-    public let id: UUID = UUID()
-    public let position: SIMD3<Float>
-    public let normal: SIMD3<Float>
-    public let type: GardenLandingType
-    public let associatedPracticeID: HasanaGardenPracticeID?
+    let id: UUID = UUID()
+    let position: SIMD3<Float>
+    let normal: SIMD3<Float>
+    let type: GardenLandingType
+    let associatedPracticeID: HasanaGardenPracticeID?
     
     /// Attractiveness multiplier based on the plant's growth stage and dormancy.
     func attractivenessScore(displayState: HasanaGardenDisplayState) -> Float {
@@ -458,42 +458,42 @@ struct GardenLandingPoint {
 // MARK: - Core Creature Class
 
 /// Represents a single active procedural creature in the simulation.
-public final class GardenCreature: Identifiable {
-    public let id: UUID = UUID()
-    public let type: GardenCreatureType
-    public var config: GardenCreatureConfig
+final class GardenCreature: Identifiable {
+    let id: UUID = UUID()
+    let type: GardenCreatureType
+    var config: GardenCreatureConfig
     
     // Kinematic parameters
-    public var position: SIMD3<Float>
-    public var velocity: SIMD3<Float>
-    public var acceleration: SIMD3<Float> = .zero
-    public var orientation: simd_quatf = simd_quatf(angle: 0.0, axis: [0, 1, 0])
+    var position: SIMD3<Float>
+    var velocity: SIMD3<Float>
+    var acceleration: SIMD3<Float> = .zero
+    var orientation: simd_quatf = simd_quatf(angle: 0.0, axis: [0, 1, 0])
     
     // Physics and Aerodynamics
-    public var energy: Float = 1.0 // Range: 0.0 (exhausted) to 1.0 (fully rested)
-    public var liftForce: SIMD3<Float> = .zero
-    public var dragForce: SIMD3<Float> = .zero
+    var energy: Float = 1.0 // Range: 0.0 (exhausted) to 1.0 (fully rested)
+    var liftForce: SIMD3<Float> = .zero
+    var dragForce: SIMD3<Float> = .zero
     
     // Animation properties
     var wingAngle: Float = 0.0
     var wingFlapTimer: Float = 0.0
-    public var isGliding: Bool = false
+    var isGliding: Bool = false
     
     // Behavior and State
-    public var state: GardenCreatureState = .spawning
-    public var targetLandingPoint: GardenLandingPoint?
+    var state: GardenCreatureState = .spawning
+    var targetLandingPoint: GardenLandingPoint?
     var restTimer: TimeInterval = 0.0
     var targetRestDuration: TimeInterval = 0.0
     
     // Spline-based paths for flight path calculations
-    public var splinePath: HasanaGardenSplinePath?
-    public var splineProgress: Float = 0.0
-    public var splineSpeed: Float = 1.0
+    var splinePath: HasanaGardenSplinePath?
+    var splineProgress: Float = 0.0
+    var splineSpeed: Float = 1.0
     
     // Pollination capability
-    public var pollenSack: GardenPollen?
-    public var totalPollinatedCount: Int = 0
-    public var recentlyVisitedPracticeIDs: [HasanaGardenPracticeID] = []
+    var pollenSack: GardenPollen?
+    var totalPollinatedCount: Int = 0
+    var recentlyVisitedPracticeIDs: [HasanaGardenPracticeID] = []
     
     // Wind drift seed
     let noiseOffset: SIMD3<Float> = SIMD3<Float>(
@@ -809,7 +809,7 @@ final class HasanaGardenCreatureVisualBuilder {
 
 @Observable
 @MainActor
-public final class HasanaGardenCreatureSystem {
+final class HasanaGardenCreatureSystem {
     
     // Configs & Environmental variables
     private var simulationBounds = GardenSimulationBounds()
@@ -819,12 +819,12 @@ public final class HasanaGardenCreatureSystem {
     private var windTimer: TimeInterval = 0.0
     
     // Active simulation models
-    public var creatures: [GardenCreature] = []
-    public private(set) var pollinationRecords: [GardenPollinationRecord] = []
+    var creatures: [GardenCreature] = []
+    private(set) var pollinationRecords: [GardenPollinationRecord] = []
     
     // State metrics
-    public var totalPollinationCount: Int = 0
-    public var crossPollinationEfficiency: Float = 0.0
+    var totalPollinationCount: Int = 0
+    var crossPollinationEfficiency: Float = 0.0
     
     // Subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -833,16 +833,16 @@ public final class HasanaGardenCreatureSystem {
     private weak var sceneAnchor: AnchorEntity?
     private var landingPoints: [GardenLandingPoint] = []
     
-    public init() {}
+    init() {}
     
     /// Connects the simulation to the RealityKit scene anchor.
-    public func setSceneAnchor(_ anchor: AnchorEntity) {
+    func setSceneAnchor(_ anchor: AnchorEntity) {
         self.sceneAnchor = anchor
         rebuildVisuals()
     }
     
     /// Updates the collection of available landing/resting locations in the garden.
-    public func updateLandingPoints(from displayState: HasanaGardenDisplayState) {
+    func updateLandingPoints(from displayState: HasanaGardenDisplayState) {
         var points: [GardenLandingPoint] = []
         
         // Coordinate mappings corresponding to Model positions in HasanaGardenView:
@@ -934,7 +934,7 @@ public final class HasanaGardenCreatureSystem {
     }
     
     /// Spawns procedural creatures into the scene based on active plant counts.
-    public func reconcileCreatures(displayState: HasanaGardenDisplayState) {
+    func reconcileCreatures(displayState: HasanaGardenDisplayState) {
         let tendedCount = displayState.tendedTodayCount
         
         // Dynamic counts based on total tended days
@@ -995,7 +995,7 @@ public final class HasanaGardenCreatureSystem {
     /// - Parameters:
     ///   - deltaTime: Seconds elapsed since the last update frame.
     ///   - store: The primary garden store to fetch current progress states.
-    public func update(deltaTime: TimeInterval, store: HasanaGardenStore) {
+    func update(deltaTime: TimeInterval, store: HasanaGardenStore) {
         let dt = Float(deltaTime)
         guard dt > 0.0001 else { return }
         
@@ -1019,7 +1019,7 @@ public final class HasanaGardenCreatureSystem {
     }
     
     /// Triggers an interactive wind gust that temporarily alters flight dynamics.
-    public func triggerWindGust() {
+    func triggerWindGust() {
         isWindActive = true
         windStrength = 3.5
         windTimer = 4.0 // seconds duration
@@ -1032,7 +1032,7 @@ public final class HasanaGardenCreatureSystem {
     }
     
     /// Disturb flying creatures, sending birds into a temporary panic state.
-    public func scareCreatures() {
+    func scareCreatures() {
         for creature in creatures {
             if creature.state == .resting || creature.state == .pollinating {
                 creature.state = .takeoff
@@ -1152,7 +1152,7 @@ public final class HasanaGardenCreatureSystem {
             }
             
             // Standard search loops
-            let searchProbability = creature.pollenSack == nil ? 0.015 : 0.008
+            let searchProbability: Float = creature.pollenSack == nil ? 0.015 : 0.008
             if Float.random(in: 0...1) < searchProbability && creature.targetLandingPoint == nil {
                 selectLandingPoint(for: creature, displayState: displayState)
             }
@@ -1631,14 +1631,14 @@ public final class HasanaGardenCreatureSystem {
 
 // MARK: - SwiftUI Overlay Companion View
 /// Renders visual telemetry statistics of the creature ecosystem.
-public struct HasanaGardenCreatureTelemetryView: View {
+struct HasanaGardenCreatureTelemetryView: View {
     let system: HasanaGardenCreatureSystem
     
-    public init(system: HasanaGardenCreatureSystem) {
+    init(system: HasanaGardenCreatureSystem) {
         self.system = system
     }
     
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Garden Ecosystem")
                 .font(.headline)

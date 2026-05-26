@@ -1,58 +1,58 @@
 import SwiftUI
 
-enum HasanaTheme {
-    static var background: Color {
+public enum HasanaTheme {
+    public static var background: Color {
         adaptive(light: palette.backgroundLight, dark: palette.backgroundDark)
     }
 
-    static var backgroundSecondary: Color {
+    public static var backgroundSecondary: Color {
         adaptive(light: palette.backgroundSecondaryLight, dark: palette.backgroundSecondaryDark)
     }
 
-    static var elevatedSurface: Color {
+    public static var elevatedSurface: Color {
         adaptive(light: palette.elevatedSurfaceLight, dark: palette.elevatedSurfaceDark)
     }
 
-    static var elevatedSurfaceSoft: Color {
+    public static var elevatedSurfaceSoft: Color {
         adaptive(light: palette.elevatedSurfaceSoftLight, dark: palette.elevatedSurfaceSoftDark)
     }
 
-    static var textPrimary: Color {
+    public static var textPrimary: Color {
         adaptive(light: "#0E1724", dark: "#F0F5FA")
     }
 
-    static var textMuted: Color {
+    public static var textMuted: Color {
         adaptive(light: "#5F7085", dark: "#A3B5C9")
     }
 
-    static var accent: Color {
+    public static var accent: Color {
         adaptive(light: palette.accentLight, dark: palette.accentDark)
     }
 
-    static var accentSoft: Color {
+    public static var accentSoft: Color {
         adaptive(light: palette.accentSoftLight, dark: palette.accentSoftDark)
     }
 
-    static let gold = adaptive(light: "#D5A754", dark: "#E9C883")
-    static let goldSoft = adaptive(light: "#FDF6E2", dark: "#3F3219")
-    static let reflection = adaptive(light: "#5F6596", dark: "#A9AEE8")
-    static let reflectionSoft = adaptive(light: "#E4E5F2", dark: "#282B49")
-    static let finance = adaptive(light: "#9A6234", dark: "#E0A267")
-    static let idea = adaptive(light: "#64B5F6", dark: "#90CAF9")
-    static let summary = adaptive(light: "#706086", dark: "#C2A7E4")
+    public static let gold = adaptive(light: "#D5A754", dark: "#E9C883")
+    public static let goldSoft = adaptive(light: "#FDF6E2", dark: "#3F3219")
+    public static let reflection = adaptive(light: "#5F6596", dark: "#A9AEE8")
+    public static let reflectionSoft = adaptive(light: "#E4E5F2", dark: "#282B49")
+    public static let finance = adaptive(light: "#9A6234", dark: "#E0A267")
+    public static let idea = adaptive(light: "#64B5F6", dark: "#90CAF9")
+    public static let summary = adaptive(light: "#706086", dark: "#C2A7E4")
 
-    static var border: Color {
+    public static var border: Color {
         adaptive(light: palette.borderLight, dark: palette.borderDark)
     }
 
-    static var borderStrong: Color {
+    public static var borderStrong: Color {
         adaptive(light: palette.borderStrongLight, dark: palette.borderStrongDark)
     }
 
-    static let overlayScrim = adaptive(light: "#0B131E", dark: "#030508")
-    static let shadow = adaptive(light: "#182E4B", dark: "#000000")
+    public static let overlayScrim = adaptive(light: "#0B131E", dark: "#030508")
+    public static let shadow = adaptive(light: "#182E4B", dark: "#000000")
 
-    static var paletteBackground: LinearGradient {
+    public static var paletteBackground: LinearGradient {
         LinearGradient(
             colors: [
                 elevatedSurface.opacity(0.94),
@@ -63,7 +63,7 @@ enum HasanaTheme {
         )
     }
 
-    static var canvasBackground: LinearGradient {
+    public static var canvasBackground: LinearGradient {
         LinearGradient(
             colors: [
                 background,
