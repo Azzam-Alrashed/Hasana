@@ -5,6 +5,7 @@ import SwiftUI
 @main
 struct HasanaWidgetsBundle: WidgetBundle {
     var body: some Widget {
+        GardenDailyWidget()   // Most important: shows all 8 practices
         PrayerTimesWidget()
         QuranJournalWidget()
         TasbihWidget()
@@ -699,8 +700,29 @@ struct HabitsProvider: TimelineProvider {
         
         let completion = totalFraction / Double(habitsList.count)
         
-        // Use average streak count of habits for streak value
-        let totalStreaks = habitsList.reduce(0) { $0 + $1.streakCount }
+        // Compute streak for each habit from HabitLog history
+        // A streak is consecutive days up to today where count >= targetCount
+        let today = HasanaGardenStore.currentLocalDayKey()
+        let calendar = Calendar.current
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        var totalStreaks = 0
+        for habit in habitsList {
+            var streak = 0
+            var checkDate = dateFormatter.date(from: today) ?? Date()
+            while true {
+                let checkKey = dateFormatter.string(from: checkDate)
+                let count = logsList.first { $0.habitID == habit.id && $0.dateKey == checkKey }?.count ?? 0
+                if count >= habit.targetCount {
+                    streak += 1
+                    checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate) ?? checkDate
+                } else {
+                    break
+                }
+            }
+            totalStreaks += streak
+        }
         let averageStreak = habitsList.isEmpty ? 0 : totalStreaks / habitsList.count
         
         return HabitsEntry(date: Date(), completionPercent: completion, activeStreaks: averageStreak)
@@ -899,5 +921,218 @@ struct DailyDuaWidget: Widget {
         .configurationDisplayName("Suggested Dua")
         .description("Read a new recommended spiritual Supplication daily.")
         .supportedFamilies([.systemMedium])
+    }
+}
+
+// MARK: - 9. GARDEN DAILY WIDGET (Core MVP)
+
+struct GardenDailyEntry: TimelineEntry {
+    let date: Date
+    let practices: [GardenWidgetPractice]
+    let tendedCount: Int
+    let totalCount: Int
+    let totalTendedDays: Int
+}
+
+struct GardenWidgetPractice: Identifiable {
+    let id: String
+    let name: String
+    let icon: String
+    let isTended: Bool
+    let isDormant: Bool
+    let growthStage: HasanaGardenGrowthStage
+}
+
+struct GardenDailyProvider: TimelineProvider {
+    func placeholder(in context: Context) -> GardenDailyEntry {
+        GardenDailyEntry(
+            date: Date(),
+            practices: HasanaGardenPractice.defaults.map { practice in
+                GardenWidgetPractice(
+                    id: practice.id.rawValue,
+                    name: practice.title(for: .arabic),
+                    icon: practice.icon,
+                    isTended: false,
+                    isDormant: false,
+                    growthStage: .young
+                )
+            },
+            tendedCount: 3,
+            totalCount: 8,
+            totalTendedDays: 21
+        )
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (GardenDailyEntry) -> Void) {
+        completion(loadEntry())
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<GardenDailyEntry>) -> Void) {
+        let entry = loadEntry()
+        // Refresh at midnight so the tended state resets for a new day
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        components.day! += 1
+        components.hour = 0
+        components.minute = 1
+        let midnight = Calendar.current.date(from: components) ?? Date().addingTimeInterval(86400)
+        completion(Timeline(entries: [entry], policy: .after(midnight)))
+    }
+
+    private func loadEntry() -> GardenDailyEntry {
+        let decoder = JSONDecoder()
+        let todayKey = HasanaGardenStore.currentLocalDayKey()
+        var progressMap: [String: HasanaGardenProgress] = [:]
+
+        if let data = UserDefaults.shared.data(forKey: HasanaGardenStore.storageKey),
+           let snapshot = HasanaGardenSnapshot.decode(from: data) {
+            for record in snapshot.progress {
+                progressMap[record.practiceID.rawValue] = record
+            }
+        }
+
+        var tendedCount = 0
+        var totalTendedDays = 0
+
+        let widgetPractices: [GardenWidgetPractice] = HasanaGardenPractice.defaults.map { practice in
+            let record = progressMap[practice.id.rawValue] ?? HasanaGardenProgress(practiceID: practice.id)
+            let isTended = record.isTended(on: todayKey)
+            let dormant = record.isDormant(todayKey: todayKey)
+
+            if isTended { tendedCount += 1 }
+            totalTendedDays += record.totalTendedDays
+
+            return GardenWidgetPractice(
+                id: practice.id.rawValue,
+                name: practice.title(for: .arabic),
+                icon: practice.icon,
+                isTended: isTended,
+                isDormant: dormant,
+                growthStage: record.growthStage
+            )
+        }
+
+        return GardenDailyEntry(
+            date: Date(),
+            practices: widgetPractices,
+            tendedCount: tendedCount,
+            totalCount: widgetPractices.count,
+            totalTendedDays: totalTendedDays
+        )
+    }
+}
+
+struct GardenDailyWidgetView: View {
+    var entry: GardenDailyProvider.Entry
+    @Environment(\.widgetFamily) var family
+
+    var body: some View {
+        ZStack {
+            WidgetTheme.primaryBackground.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 10) {
+                // Header
+                HStack {
+                    Label("حسنة", systemImage: "leaf.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(WidgetTheme.gold)
+
+                    Spacer()
+
+                    Text("\(entry.tendedCount)/\(entry.totalCount)")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(WidgetTheme.textPrimary)
+                        .monospacedDigit()
+
+                    Text(family == .systemSmall ? "" : "today")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(WidgetTheme.textMuted)
+                }
+
+                if family == .systemSmall {
+                    // Small: show 4 practices in a 2x2 grid
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                        ForEach(entry.practices.prefix(4)) { practice in
+                            GardenWidgetPracticeCell(practice: practice, compact: true)
+                        }
+                    }
+                } else {
+                    // Medium/Large: show all 8
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4),
+                        spacing: 6
+                    ) {
+                        ForEach(entry.practices) { practice in
+                            GardenWidgetPracticeCell(practice: practice, compact: false)
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                // Footer
+                HStack {
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(WidgetTheme.gold)
+                    Text("\(entry.totalTendedDays) total days")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(WidgetTheme.textMuted)
+                }
+            }
+            .padding(12)
+        }
+    }
+}
+
+private struct GardenWidgetPracticeCell: View {
+    let practice: GardenWidgetPractice
+    let compact: Bool
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Image(systemName: practice.icon)
+                .font(.system(size: compact ? 14 : 12, weight: .bold))
+                .foregroundStyle(cellColor)
+
+            if !compact {
+                Text(practice.growthStage.rawValue.prefix(1).uppercased())
+                    .font(.system(size: 8, weight: .black))
+                    .foregroundStyle(WidgetTheme.textMuted)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: compact ? 36 : 32)
+        .background(
+            practice.isTended
+                ? WidgetTheme.gold.opacity(0.15)
+                : (practice.isDormant ? WidgetTheme.border.opacity(0.5) : WidgetTheme.surface),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    practice.isTended ? WidgetTheme.gold.opacity(0.5) : Color.clear,
+                    lineWidth: 1
+                )
+        }
+    }
+
+    private var cellColor: Color {
+        if practice.isTended { return WidgetTheme.gold }
+        if practice.isDormant { return WidgetTheme.textMuted.opacity(0.5) }
+        return WidgetTheme.periwinkle.opacity(0.7)
+    }
+}
+
+struct GardenDailyWidget: Widget {
+    let kind: String = "GardenDailyWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: GardenDailyProvider()) { entry in
+            GardenDailyWidgetView(entry: entry)
+                .containerBackground(.fill, for: .widget)
+        }
+        .configurationDisplayName("Today's Garden")
+        .description("See your 8 worship practices at a glance. Glowing icons mean tended today.")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

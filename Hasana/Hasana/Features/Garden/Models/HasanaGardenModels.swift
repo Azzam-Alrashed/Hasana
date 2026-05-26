@@ -209,12 +209,42 @@ struct HasanaGardenProgress: Identifiable, Codable, Equatable {
     func isTended(on dayKey: String) -> Bool {
         tendedDayKeys.contains(dayKey)
     }
+
+    /// The most recent day key on which this practice was tended, or nil if never.
+    var lastTendedDayKey: String? {
+        tendedDayKeys.sorted().last
+    }
+
+    /// Number of days since the last tended day, relative to today.
+    /// Returns nil if never tended.
+    func daysSinceLastTended(todayKey: String) -> Int? {
+        guard let last = lastTendedDayKey else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard
+            let lastDate = formatter.date(from: last),
+            let todayDate = formatter.date(from: todayKey)
+        else { return nil }
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: lastDate, to: todayDate)
+        return components.day
+    }
+
+    /// A practice is dormant when it was tended at some point in history but
+    /// hasn't been tended for 2 or more days and is not tended today.
+    func isDormant(todayKey: String) -> Bool {
+        guard !tendedDayKeys.isEmpty else { return false } // never tended = seed, not dormant
+        guard !isTended(on: todayKey) else { return false } // tended today = not dormant
+        guard let days = daysSinceLastTended(todayKey: todayKey) else { return false }
+        return days >= 2
+    }
 }
 
 struct HasanaGardenPracticeState: Identifiable, Equatable {
     let practice: HasanaGardenPractice
     let progress: HasanaGardenProgress
     let isTendedToday: Bool
+    let isDormant: Bool
 
     var id: HasanaGardenPracticeID { practice.id }
 }
@@ -238,13 +268,37 @@ struct HasanaCalendarDay: Identifiable, Hashable {
     }
 }
 
+/// Schema v2: removed viewport fields (canvas dead code).
+/// Migration: v1 snapshots can be decoded by reading just `progress`.
 struct HasanaGardenSnapshot: Codable, Equatable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     var schemaVersion: Int
     var progress: [HasanaGardenProgress]
-    var viewportOffset: CGSize
-    var viewportScale: CGFloat
+
+    /// Failable migration from the raw stored Data.
+    /// Handles both v1 (with viewportOffset/viewportScale) and v2.
+    static func decode(from data: Data) -> HasanaGardenSnapshot? {
+        let decoder = JSONDecoder()
+        // Try current v2 schema first
+        if let snapshot = try? decoder.decode(HasanaGardenSnapshot.self, from: data),
+           snapshot.schemaVersion == currentSchemaVersion {
+            return snapshot
+        }
+        // Fallback: try decoding v1 (has extra fields — we only need `progress`)
+        if let legacy = try? decoder.decode(HasanaGardenSnapshotV1.self, from: data) {
+            return HasanaGardenSnapshot(schemaVersion: currentSchemaVersion, progress: legacy.progress)
+        }
+        return nil
+    }
+}
+
+/// Internal v1 schema for migration purposes only.
+private struct HasanaGardenSnapshotV1: Codable {
+    var schemaVersion: Int
+    var progress: [HasanaGardenProgress]
+    var viewportOffset: CGSize?
+    var viewportScale: CGFloat?
 }
 
 extension HasanaGardenPractice {

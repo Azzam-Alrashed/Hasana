@@ -15,7 +15,22 @@ struct HasanaGardenView: View {
             HasanaGardenRealityView(
                 displayState: displayState,
                 cameraState: cameraState,
-                onPracticeSelected: onPracticeSelected
+                onPracticeSelected: { id in
+                    triggerGardenTapHaptic()
+                    onPracticeSelected(id)
+                }
+            )
+            .ignoresSafeArea()
+
+            // Invisible accessibility overlay — VoiceOver can't interact with ARView entities,
+            // so we layer buttons at each plant's approximate screen position.
+            HasanaGardenA11yOverlay(
+                displayState: displayState,
+                language: language,
+                onPracticeSelected: { id in
+                    triggerGardenTapHaptic()
+                    onPracticeSelected(id)
+                }
             )
             .ignoresSafeArea()
 
@@ -40,7 +55,101 @@ struct HasanaGardenView: View {
         }
         .ignoresSafeArea()
     }
+
+    private func triggerGardenTapHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.prepare()
+        generator.impactOccurred()
+    }
 }
+
+// MARK: - Accessibility Overlay
+
+/// Invisible grid of buttons mapped to each plant's approximate 2D screen region.
+/// Allows VoiceOver users to interact with the 3D garden without touching the ARView.
+private struct HasanaGardenA11yOverlay: View {
+    let displayState: HasanaGardenDisplayState
+    let language: HasanaLanguage
+    let onPracticeSelected: (HasanaGardenPracticeID) -> Void
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                ForEach(displayState.practices) { practiceState in
+                    let screenPos = screenPosition(
+                        for: practiceState.practice.id,
+                        in: geometry.size
+                    )
+
+                    Button {
+                        onPracticeSelected(practiceState.practice.id)
+                    } label: {
+                        Color.clear
+                            .frame(width: 80, height: 80)
+                    }
+                    .position(screenPos)
+                    .accessibilityLabel(accessibilityLabel(for: practiceState))
+                    .accessibilityHint(isTendedHint(for: practiceState))
+                    .accessibilityAddTraits(.isButton)
+                }
+            }
+        }
+    }
+
+    private func accessibilityLabel(for state: HasanaGardenPracticeState) -> String {
+        let name = state.practice.title(for: language)
+        let status = state.practice.religiousStatus.title(for: language)
+        let stage = state.progress.growthStage.title(for: language)
+        let tendedState: String
+        if state.isTendedToday {
+            tendedState = language == .arabic ? "تم اليوم" : "Tended today"
+        } else if state.isDormant {
+            tendedState = language == .arabic ? "نائمة – تحتاج رعاية" : "Dormant – needs care"
+        } else {
+            tendedState = language == .arabic ? "لم يتم اليوم" : "Not tended today"
+        }
+        return "\(name), \(status), \(stage), \(tendedState)"
+    }
+
+    private func isTendedHint(for state: HasanaGardenPracticeState) -> String {
+        if state.isTendedToday {
+            return language == .arabic
+                ? "اضغط لفتح التسجيل وإلغاء التسجيل إذا لزم."
+                : "Tap to open logging and untend if needed."
+        } else {
+            return language == .arabic
+                ? "اضغط لفتح التسجيل وتسجيل هذه العبادة اليوم."
+                : "Tap to open logging and tend this practice today."
+        }
+    }
+
+    /// Maps each practice to an approximate 2D position that aligns with where
+    /// the 3D entity appears in the default camera view.
+    private func screenPosition(for id: HasanaGardenPracticeID, in size: CGSize) -> CGPoint {
+        let cx = size.width / 2
+        let cy = size.height / 2
+        switch id {
+        case .fajr:
+            return CGPoint(x: cx - size.width * 0.30, y: cy - size.height * 0.12)
+        case .dhuhr:
+            return CGPoint(x: cx - size.width * 0.10, y: cy - size.height * 0.14)
+        case .asr:
+            return CGPoint(x: cx + size.width * 0.10, y: cy - size.height * 0.12)
+        case .maghrib:
+            return CGPoint(x: cx + size.width * 0.26, y: cy - size.height * 0.04)
+        case .isha:
+            return CGPoint(x: cx + size.width * 0.18, y: cy + size.height * 0.08)
+        case .quran:
+            return CGPoint(x: cx - size.width * 0.20, y: cy + size.height * 0.08)
+        case .adhkar:
+            return CGPoint(x: cx, y: cy + size.height * 0.06)
+        case .witr:
+            return CGPoint(x: cx + size.width * 0.28, y: cy + size.height * 0.10)
+        }
+    }
+}
+
+// MARK: - Camera State
 
 @MainActor
 @Observable
@@ -57,7 +166,7 @@ final class HasanaGardenCameraState {
     private let defaultPitch: Float = 0.54
     private let defaultDistance: Float = 6.6
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .shared) {
         self.userDefaults = userDefaults
 
         if let data = userDefaults.data(forKey: Self.storageKey),
@@ -112,6 +221,8 @@ private struct HasanaGardenCameraSnapshot: Codable {
     let distance: Float
 }
 
+// MARK: - RealityKit View
+
 private struct HasanaGardenRealityView: UIViewRepresentable {
     let displayState: HasanaGardenDisplayState
     let cameraState: HasanaGardenCameraState
@@ -132,6 +243,8 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         )
         arView.backgroundColor = UIColor(red: 0.91, green: 0.96, blue: 0.92, alpha: 1)
         arView.environment.background = .color(UIColor(red: 0.91, green: 0.96, blue: 0.92, alpha: 1))
+        // Disable built-in AR accessibility — our overlay handles VoiceOver.
+        arView.accessibilityElementsHidden = true
         context.coordinator.configure(arView)
         context.coordinator.render(displayState)
         return arView
@@ -325,6 +438,11 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             root.name = entityName(for: state.practice.id)
             root.position = position(for: state.practice.id)
 
+            // Dormant plants are slightly drooped — tilt the root entity
+            if state.isDormant && !state.isTendedToday {
+                root.orientation = simd_quatf(angle: 0.18, axis: [1, 0, 0.2])
+            }
+
             if let modelEntity = makeAssetBackedPracticeEntity(for: state) {
                 root.addChild(modelEntity)
             } else {
@@ -353,12 +471,12 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
 
         private func makeTree(for state: HasanaGardenPracticeState, in root: Entity) {
             let scale = state.progress.growthStage.modelScale
-            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday)
+            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
 
             let trunk = namedModel(
                 id: state.practice.id,
                 mesh: .generateCylinder(height: 0.56 + scale * 0.46, radius: 0.075 + scale * 0.035),
-                color: UIColor(HasanaTheme.finance.opacity(0.9)),
+                color: UIColor(HasanaTheme.finance.opacity(state.isDormant && !state.isTendedToday ? 0.58 : 0.9)),
                 roughness: 0.8
             )
             trunk.position = [0, 0.26 + scale * 0.2, 0]
@@ -380,7 +498,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
 
         private func makeLeafyPlant(for state: HasanaGardenPracticeState, in root: Entity) {
             let scale = state.progress.growthStage.modelScale
-            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday)
+            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
 
             let stem = namedModel(
                 id: state.practice.id,
@@ -390,6 +508,9 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             )
             stem.position = [0, 0.18 + scale * 0.18, 0]
             root.addChild(stem)
+
+            // Dormant leafy plants have leaves that droop slightly lower
+            let dormantDrop: Float = (state.isDormant && !state.isTendedToday) ? -0.06 : 0
 
             for index in 0..<state.progress.growthStage.leafCount {
                 let side: Float = index.isMultiple(of: 2) ? -1 : 1
@@ -401,17 +522,19 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                 )
                 leaf.position = [
                     side * (0.12 + scale * 0.07),
-                    0.22 + Float(index) * 0.08,
+                    0.22 + Float(index) * 0.08 + dormantDrop,
                     Float(index) * 0.03 - 0.08
                 ]
-                leaf.orientation = simd_quatf(angle: side * 0.55, axis: [0, 0, 1])
+                // Dormant leaves droop further
+                let droopAngle: Float = (state.isDormant && !state.isTendedToday) ? side * 0.82 : side * 0.55
+                leaf.orientation = simd_quatf(angle: droopAngle, axis: [0, 0, 1])
                 root.addChild(leaf)
             }
         }
 
         private func makeFlower(for state: HasanaGardenPracticeState, in root: Entity) {
             let scale = state.progress.growthStage.modelScale
-            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday)
+            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
 
             let stem = namedModel(
                 id: state.practice.id,
@@ -432,7 +555,10 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             center.position = [0, centerHeight, 0]
             root.addChild(center)
 
-            let petalCount = state.progress.growthStage == .flowering ? 6 : max(2, state.progress.growthStage.leafCount)
+            // Dormant flowers have fewer petals (partially closed look)
+            let fullPetalCount = state.progress.growthStage == .flowering ? 6 : max(2, state.progress.growthStage.leafCount)
+            let petalCount = (state.isDormant && !state.isTendedToday) ? max(2, fullPetalCount - 2) : fullPetalCount
+
             for index in 0..<petalCount {
                 let angle = (Float(index) / Float(max(petalCount, 1))) * .pi * 2
                 let petal = namedModel(
@@ -441,10 +567,14 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                     color: accent,
                     roughness: 0.58
                 )
+                // Dormant petals pull inward
+                let petalRadius: Float = (state.isDormant && !state.isTendedToday)
+                    ? 0.07 + scale * 0.03
+                    : 0.12 + scale * 0.05
                 petal.position = [
-                    cos(angle) * (0.12 + scale * 0.05),
+                    cos(angle) * petalRadius,
                     centerHeight,
-                    sin(angle) * (0.12 + scale * 0.05)
+                    sin(angle) * petalRadius
                 ]
                 petal.orientation = simd_quatf(angle: -angle, axis: [0, 1, 0])
                 root.addChild(petal)
@@ -519,7 +649,13 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             }
         }
 
-        private func accentColor(for practice: HasanaGardenPractice, isTendedToday: Bool) -> UIColor {
+        /// Returns the plant's accent color, desaturated and dimmed when dormant.
+        private func accentColor(for practice: HasanaGardenPractice, isTendedToday: Bool, isDormant: Bool) -> UIColor {
+            // Dormant and not tended today: desaturate and reduce opacity significantly
+            if isDormant && !isTendedToday {
+                return dormantColor(for: practice)
+            }
+
             let opacity = isTendedToday ? 0.96 : 0.76
 
             switch practice.religiousStatus {
@@ -532,6 +668,28 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             case .sunnah, .sunnahWajib:
                 return UIColor(HasanaTheme.summary.opacity(opacity))
             }
+        }
+
+        /// A muted, grey-blue tint used for dormant plants — gentle, not punitive.
+        private func dormantColor(for practice: HasanaGardenPractice) -> UIColor {
+            // Blend the practice's natural color with a cool grey at ~35% saturation
+            let baseColor: UIColor
+            switch practice.religiousStatus {
+            case .obligatory:
+                baseColor = UIColor(HasanaTheme.accent)
+            case .quran:
+                baseColor = UIColor(HasanaTheme.gold)
+            case .dhikr:
+                baseColor = UIColor(HasanaTheme.reflection)
+            case .sunnah, .sunnahWajib:
+                baseColor = UIColor(HasanaTheme.summary)
+            }
+
+            var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            baseColor.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+
+            // Reduce saturation by ~65%, drop brightness slightly, cap opacity at 0.52
+            return UIColor(hue: h, saturation: s * 0.35, brightness: b * 0.78, alpha: 0.52)
         }
 
         private func canopyOffset(index: Int, scale: Float) -> SIMD3<Float> {
@@ -548,6 +706,8 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         }
     }
 }
+
+// MARK: - Growth Stage 3D Geometry Helpers
 
 private extension HasanaGardenGrowthStage {
     var modelScale: Float {
@@ -593,6 +753,8 @@ private extension HasanaGardenGrowthStage {
         }
     }
 }
+
+// MARK: - Status Bar
 
 private struct HasanaGardenStatusBar: View {
     let tendedTodayCount: Int
@@ -667,6 +829,8 @@ private struct HasanaGardenStatusBar: View {
     }
 }
 
+// MARK: - Garden Hint
+
 private struct HasanaGardenHint: View {
     let language: HasanaLanguage
 
@@ -700,6 +864,8 @@ private struct HasanaGardenHint: View {
         }
     }
 }
+
+// MARK: - Preview
 
 #Preview {
     HasanaGardenView(

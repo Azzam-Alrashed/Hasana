@@ -8,6 +8,7 @@ enum HasanaSettingsKeys {
     static let appearance = "hasana.settings.appearance"
     static let appIcon = "hasana.settings.appIcon"
     static let hasCompletedOnboarding = "hasana.onboarding.completed"
+    static let prayerSettings = "hasana.prayer.settings"
 }
 
 enum HasanaLanguage: String, CaseIterable, Identifiable, Codable {
@@ -82,7 +83,7 @@ enum HasanaThemeChoice: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 
     static var current: HasanaThemeChoice {
-        let rawValue = UserDefaults.standard.string(forKey: HasanaSettingsKeys.theme)
+        let rawValue = UserDefaults.shared.string(forKey: HasanaSettingsKeys.theme)
         return HasanaThemeChoice(rawValue: rawValue ?? "") ?? .garden
     }
 
@@ -310,39 +311,58 @@ enum HasanaAppIcon: String, CaseIterable, Identifiable, Codable {
 
 @Observable
 final class HasanaAppSettings {
+    // MARK: - Stored Properties (backed by shared UserDefaults)
+
     var language: HasanaLanguage {
         didSet {
-            UserDefaults.standard.set(language.rawValue, forKey: HasanaSettingsKeys.language)
+            UserDefaults.shared.set(language.rawValue, forKey: HasanaSettingsKeys.language)
         }
     }
 
     var theme: HasanaThemeChoice {
         didSet {
-            UserDefaults.standard.set(theme.rawValue, forKey: HasanaSettingsKeys.theme)
+            UserDefaults.shared.set(theme.rawValue, forKey: HasanaSettingsKeys.theme)
         }
     }
 
     var appearance: HasanaAppearance {
         didSet {
-            UserDefaults.standard.set(appearance.rawValue, forKey: HasanaSettingsKeys.appearance)
+            UserDefaults.shared.set(appearance.rawValue, forKey: HasanaSettingsKeys.appearance)
         }
     }
 
     var appIcon: HasanaAppIcon {
         didSet {
-            UserDefaults.standard.set(appIcon.rawValue, forKey: HasanaSettingsKeys.appIcon)
+            UserDefaults.shared.set(appIcon.rawValue, forKey: HasanaSettingsKeys.appIcon)
             applyAppIcon(appIcon)
+        }
+    }
+
+    /// Prayer settings — consolidated here from the old ad-hoc RootView handling.
+    var prayerSettings: PrayerSettings {
+        didSet {
+            guard let data = try? JSONEncoder().encode(prayerSettings) else { return }
+            UserDefaults.shared.set(data, forKey: HasanaSettingsKeys.prayerSettings)
         }
     }
 
     var appIconErrorMessage: String?
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .shared) {
         language = HasanaLanguage(rawValue: userDefaults.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic
         theme = HasanaThemeChoice(rawValue: userDefaults.string(forKey: HasanaSettingsKeys.theme) ?? "") ?? .garden
         appearance = HasanaAppearance(rawValue: userDefaults.string(forKey: HasanaSettingsKeys.appearance) ?? "") ?? .system
         appIcon = HasanaAppIcon(rawValue: userDefaults.string(forKey: HasanaSettingsKeys.appIcon) ?? "") ?? .primary
+
+        if let data = userDefaults.data(forKey: HasanaSettingsKeys.prayerSettings),
+           let decoded = try? JSONDecoder().decode(PrayerSettings.self, from: data) {
+            prayerSettings = decoded
+        } else {
+            prayerSettings = PrayerSettings()
+        }
     }
+
+    // MARK: - Derived Properties
 
     var locale: Locale {
         Locale(identifier: language.localeIdentifier)
@@ -355,6 +375,8 @@ final class HasanaAppSettings {
     var colorScheme: ColorScheme? {
         appearance.colorScheme
     }
+
+    // MARK: - Private Helpers
 
     private func applyAppIcon(_ icon: HasanaAppIcon) {
         guard UIApplication.shared.supportsAlternateIcons else {

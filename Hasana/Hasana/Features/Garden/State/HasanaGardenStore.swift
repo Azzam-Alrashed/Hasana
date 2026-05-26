@@ -1,4 +1,3 @@
-import CoreGraphics
 import Foundation
 import Observation
 
@@ -10,24 +9,21 @@ final class HasanaGardenStore {
     let practices: [HasanaGardenPractice] = HasanaGardenPractice.defaults
 
     var progress: [HasanaGardenPracticeID: HasanaGardenProgress] = [:]
-    var viewportOffset: CGSize = .zero
-    var viewportScale: CGFloat = 1.0
     var selectedPracticeID: HasanaGardenPracticeID?
-    var selectedDayKey: String = ""
+    var selectedDayKey: String
 
     private let userDefaults: UserDefaults
     private let encoder = JSONEncoder()
-    private let decoder = JSONDecoder()
     private let dayKeyProvider: () -> String
 
     init(
-        userDefaults: UserDefaults = .standard,
+        userDefaults: UserDefaults = .shared,
         dayKeyProvider: @escaping () -> String = HasanaGardenStore.currentLocalDayKey
     ) {
         self.userDefaults = userDefaults
         self.dayKeyProvider = dayKeyProvider
-        load()
         self.selectedDayKey = dayKeyProvider()
+        load()
     }
 
     var todayKey: String {
@@ -45,6 +41,7 @@ final class HasanaGardenStore {
         let states = practices.map { practice in
             let record = progress(for: practice.id)
             let isTendedToday = record.isTended(on: dayKey)
+            let dormant = record.isDormant(todayKey: dayKey)
 
             if isTendedToday {
                 tendedTodayCount += 1
@@ -54,7 +51,8 @@ final class HasanaGardenStore {
             return HasanaGardenPracticeState(
                 practice: practice,
                 progress: record,
-                isTendedToday: isTendedToday
+                isTendedToday: isTendedToday,
+                isDormant: dormant
             )
         }
 
@@ -111,39 +109,31 @@ final class HasanaGardenStore {
         return days
     }
 
-    func updateViewport(offset: CGSize, scale: CGFloat) {
-        viewportOffset = offset
-        viewportScale = scale
-        save()
-    }
-
     func selectPractice(_ practiceID: HasanaGardenPracticeID?) {
         selectedPracticeID = practiceID
     }
 
+    // MARK: - Persistence
+
     private func load() {
-        guard
-            let data = userDefaults.data(forKey: Self.storageKey),
-            let snapshot = try? decoder.decode(HasanaGardenSnapshot.self, from: data),
-            snapshot.schemaVersion == HasanaGardenSnapshot.currentSchemaVersion
-        else {
+        guard let data = userDefaults.data(forKey: Self.storageKey) else {
             progress = defaultProgress()
-            viewportOffset = .zero
-            viewportScale = 1.0
+            return
+        }
+
+        guard let snapshot = HasanaGardenSnapshot.decode(from: data) else {
+            // Corrupt data — fall back to defaults rather than crashing.
+            progress = defaultProgress()
             return
         }
 
         progress = mergeProgress(snapshot.progress)
-        viewportOffset = snapshot.viewportOffset
-        viewportScale = snapshot.viewportScale
     }
 
     private func save() {
         let snapshot = HasanaGardenSnapshot(
             schemaVersion: HasanaGardenSnapshot.currentSchemaVersion,
-            progress: practices.map { progress(for: $0.id) },
-            viewportOffset: viewportOffset,
-            viewportScale: viewportScale
+            progress: practices.map { progress(for: $0.id) }
         )
 
         guard let data = try? encoder.encode(snapshot) else { return }

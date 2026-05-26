@@ -1,10 +1,3 @@
-//
-//  RootView.swift
-//  Hasana
-//
-//  Created by Azzam Alrashed on 25/05/2026.
-//
-
 import SwiftUI
 
 struct RootView: View {
@@ -21,13 +14,6 @@ struct RootView: View {
     @State private var isShowingSunnahTracker = false
     @State private var isShowingAnalytics = false
     @State private var isShowingIslamicHub = false
-    @State private var prayerSettings: PrayerSettings = {
-        if let data = UserDefaults.standard.data(forKey: "hasana.prayer.settings"),
-           let decoded = try? JSONDecoder().decode(PrayerSettings.self, from: data) {
-            return decoded
-        }
-        return PrayerSettings()
-    }()
 
     var body: some View {
         ZStack {
@@ -78,7 +64,13 @@ struct RootView: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $isShowingPrayerDashboard) {
-            PrayerTimesDashboardView(language: appSettings.language, settings: $prayerSettings)
+            PrayerTimesDashboardView(
+                language: appSettings.language,
+                settings: Binding(
+                    get: { appSettings.prayerSettings },
+                    set: { appSettings.prayerSettings = $0 }
+                )
+            )
         }
         .sheet(isPresented: $isShowingTasbih) {
             HasanaTasbihView(language: appSettings.language, onLoggedAdhkar: {
@@ -113,10 +105,7 @@ struct RootView: View {
                 }
             })
         }
-        .onChange(of: prayerSettings) { _, newValue in
-            if let data = try? JSONEncoder().encode(newValue) {
-                UserDefaults.standard.set(data, forKey: "hasana.prayer.settings")
-            }
+        .onChange(of: appSettings.prayerSettings) { _, _ in
             rescheduleAthanNotifications()
         }
         .environment(\.layoutDirection, appSettings.layoutDirection)
@@ -125,10 +114,10 @@ struct RootView: View {
         .onAppear {
             configureCommandHandlers()
             refreshCommands()
-            
+
             // Audio setup
             SoundManager.shared.playAmbientSound()
-            
+
             // Notification Auth and schedule
             NotificationManager.shared.requestAuthorization()
             rescheduleAthanNotifications()
@@ -174,21 +163,22 @@ struct RootView: View {
     }
 
     private func rescheduleAthanNotifications() {
+        let settings = appSettings.prayerSettings
         let timezone = TimeZone(identifier: TimeZone.current.identifier) ?? TimeZone.current
         let offset = Double(timezone.secondsFromGMT(for: Date())) / 3600.0
-        
+
         let calculated = PrayerTimesEngine.calculateTimes(
             for: Date(),
-            latitude: prayerSettings.latitude,
-            longitude: prayerSettings.longitude,
+            latitude: settings.latitude,
+            longitude: settings.longitude,
             timeZoneOffset: offset,
-            method: prayerSettings.method,
-            useHanafiAsr: prayerSettings.useHanafiAsr
+            method: settings.method,
+            useHanafiAsr: settings.useHanafiAsr
         )
-        
+
         NotificationManager.shared.scheduleAthanNotifications(
             for: calculated,
-            settings: prayerSettings,
+            settings: settings,
             language: appSettings.language
         )
     }
