@@ -111,6 +111,7 @@ struct HasanaGardenLogSheet: View {
                                 practice: practiceState.practice,
                                 progress: practiceState.progress,
                                 isTendedToday: practiceState.isTendedToday,
+                                isDormant: practiceState.isDormant,
                                 isTodaySelected: store.selectedDayKey == store.todayKey,
                                 isSelected: store.selectedPracticeID == practiceState.practice.id,
                                 language: language,
@@ -167,6 +168,7 @@ private struct GardenPracticeLogCard: View {
     let practice: HasanaGardenPractice
     let progress: HasanaGardenProgress
     let isTendedToday: Bool
+    let isDormant: Bool
     let isTodaySelected: Bool
     let isSelected: Bool
     let language: HasanaLanguage
@@ -194,6 +196,26 @@ private struct GardenPracticeLogCard: View {
         }
     }
 
+    private var stateSymbolName: String {
+        if isTendedToday {
+            "checkmark.seal.fill"
+        } else if isDormant {
+            "moon.zzz.fill"
+        } else {
+            "circle.dotted"
+        }
+    }
+
+    private var stateLabel: String {
+        if isTendedToday {
+            copy.tendedToday
+        } else if isDormant {
+            copy.dormant
+        } else {
+            copy.notTendedToday
+        }
+    }
+
     var body: some View {
         Button(action: onToggle) {
             VStack(alignment: .leading, spacing: 14) {
@@ -201,6 +223,10 @@ private struct GardenPracticeLogCard: View {
                     ZStack {
                         Circle()
                             .fill(accentColor.opacity(isTendedToday ? 0.2 : 0.1))
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(isTendedToday ? HasanaTheme.gold.opacity(0.72) : HasanaTheme.border.opacity(0.7), lineWidth: isTendedToday ? 1.4 : 0.8)
+                            }
 
                         Image(systemName: practice.icon)
                             .font(.system(size: 18, weight: .bold))
@@ -220,6 +246,22 @@ private struct GardenPracticeLogCard: View {
                             .foregroundStyle(HasanaTheme.textMuted)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        Label(stateLabel, systemImage: stateSymbolName)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(isTendedToday ? HasanaTheme.textPrimary : HasanaTheme.textMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(
+                                isTendedToday ? HasanaTheme.goldSoft.opacity(0.9) : HasanaTheme.elevatedSurfaceSoft.opacity(0.92),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(isTendedToday ? HasanaTheme.gold.opacity(0.48) : HasanaTheme.border.opacity(0.58), lineWidth: 0.8)
+                            }
                     }
 
                     Spacer(minLength: 0)
@@ -257,7 +299,7 @@ private struct GardenPracticeLogCard: View {
                 .foregroundStyle(isTendedToday ? HasanaTheme.textPrimary : .white)
                 .frame(maxWidth: .infinity, minHeight: 42)
                 .background(
-                    isTendedToday ? HasanaTheme.goldSoft.opacity(0.86) : accentColor,
+                    isTendedToday ? HasanaTheme.goldSoft.opacity(0.9) : accentColor,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                 )
                 .overlay {
@@ -267,7 +309,7 @@ private struct GardenPracticeLogCard: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 176, alignment: .topLeading)
-            .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(HasanaTheme.elevatedSurface.opacity(0.94), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(isSelected ? accentColor.opacity(0.86) : HasanaTheme.border.opacity(0.58), lineWidth: isSelected ? 1.4 : 0.8)
@@ -280,7 +322,7 @@ private struct GardenPracticeLogCard: View {
     }
 
     private var accessibilityLabel: String {
-        "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(isTendedToday ? copy.tendedToday : copy.notTendedToday)"
+        "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(stateLabel)"
     }
 }
 
@@ -345,6 +387,15 @@ struct GardenLogCopy {
             "لم يتم اليوم"
         case .english:
             "Not tended today"
+        }
+    }
+
+    var dormant: String {
+        switch language {
+        case .arabic:
+            "نائمة بلطف"
+        case .english:
+            "Gently dormant"
         }
     }
 
