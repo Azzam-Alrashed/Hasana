@@ -88,6 +88,12 @@ Hasana currently stores all worship progress locally on device using UserDefault
 - Settings language, appearance, theme, and app icon choices persist.
 - Support screen cannot initiate a real payment.
 - Dynamic Type does not clip primary actions on common device sizes.
+- VoiceOver can identify each garden practice by name, status, growth stage, and tended/untended/dormant state.
+- VoiceOver hints explain how to open logging, tend, untend, change logging day, and use onboarding/settings controls.
+- Garden and logging surfaces communicate tended, untended, and dormant states with text or symbols in addition to color.
+- Calendar day chips, garden practice targets, floating action button, onboarding navigation, and settings choice controls have comfortable tap targets.
+- Arabic and English onboarding, logging, and settings text do not clip on iPhone SE, standard iPhone, and large iPhone layouts at default and large Dynamic Type.
+- Settings theme and app icon grids collapse or wrap without truncating Arabic labels on narrow iPhone widths.
 - Location permission prompts when viewing Qibla compass or opening Prayer Times.
 - Notification permission prompts when enabling Athan alarms.
 - Prayer Times calculation updates correctly when location coordinates or methods are changed.

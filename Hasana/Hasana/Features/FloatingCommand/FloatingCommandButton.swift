@@ -8,6 +8,7 @@ struct FloatingCommandButton: View {
     @State private var isExpanded = false
     @State private var activeAction: CommandAction?
 
+    var language: HasanaLanguage = .arabic
     var onTap: () -> Void
     var onLogGoodDeed: () -> Void
     var onSetIntention: () -> Void
@@ -59,10 +60,15 @@ struct FloatingCommandButton: View {
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundStyle(HasanaTheme.accent)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
                 }
                 .frame(width: buttonSize, height: buttonSize)
+                .contentShape(Circle())
                 .scaleEffect(isDragging ? 1.14 : (isExpanded ? 0.92 : 1))
                 .position(currentPosition)
+                .accessibilityLabel(isExpanded ? closeActionsLabel : openActionsLabel)
+                .accessibilityHint(actionsHint)
+                .accessibilityAddTraits(.isButton)
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: 0.25)
                         .onEnded { _ in
@@ -129,6 +135,7 @@ struct FloatingCommandButton: View {
         ZStack {
             QuickActionBubble(
                 icon: "heart.fill",
+                accessibilityLabel: logWorshipLabel,
                 color: HasanaTheme.accent,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .goodDeed,
@@ -146,6 +153,7 @@ struct FloatingCommandButton: View {
 
             QuickActionBubble(
                 icon: "sparkles",
+                accessibilityLabel: settingsLabel,
                 color: HasanaTheme.gold,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .intention,
@@ -163,6 +171,7 @@ struct FloatingCommandButton: View {
 
             QuickActionBubble(
                 icon: "moon.stars",
+                accessibilityLabel: reflectLabel,
                 color: HasanaTheme.reflection,
                 isExpanded: isExpanded,
                 isHighlighted: activeAction == .reflect,
@@ -297,6 +306,32 @@ struct FloatingCommandButton: View {
         sqrt(pow(from.x - to.x, 2) + pow(from.y - to.y, 2))
     }
 
+    private var openActionsLabel: String {
+        language == .arabic ? "افتح الإجراءات" : "Open actions"
+    }
+
+    private var closeActionsLabel: String {
+        language == .arabic ? "أغلق الإجراءات" : "Close actions"
+    }
+
+    private var actionsHint: String {
+        language == .arabic
+            ? "يفتح اختصارات التسجيل والإعدادات والتأمل."
+            : "Opens logging, settings, and reflection shortcuts."
+    }
+
+    private var logWorshipLabel: String {
+        language == .arabic ? "تسجيل العبادة" : "Log worship"
+    }
+
+    private var settingsLabel: String {
+        language == .arabic ? "فتح الإعدادات" : "Open settings"
+    }
+
+    private var reflectLabel: String {
+        language == .arabic ? "تأمل" : "Reflect"
+    }
+
     private func triggerHapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
@@ -306,6 +341,7 @@ struct FloatingCommandButton: View {
 
 private struct QuickActionBubble: View {
     let icon: String
+    let accessibilityLabel: String
     let color: Color
     let isExpanded: Bool
     var isHighlighted = false
@@ -327,10 +363,15 @@ private struct QuickActionBubble: View {
             Image(systemName: icon)
                 .font(.system(size: size * 0.38, weight: .bold))
                 .foregroundStyle(color)
+                .accessibilityHidden(true)
         }
-        .frame(width: size, height: size)
+        .frame(width: max(size, 44), height: max(size, 44))
+        .contentShape(Circle())
         .scaleEffect(isExpanded ? (isHighlighted ? 1.24 : 1) : 0.01)
         .opacity(isExpanded ? 1 : 0)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHidden(!isExpanded)
         .animation(.spring(response: 0.3, dampingFraction: 0.64), value: isHighlighted)
         .animation(.spring(response: 0.4, dampingFraction: 0.64).delay(isExpanded ? delay : 0), value: isExpanded)
         .onTapGesture {

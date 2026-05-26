@@ -46,9 +46,12 @@ struct HasanaGardenView: View {
 
                 Spacer()
 
-                HasanaGardenHint(language: language)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 22)
+                VStack(spacing: 10) {
+                    HasanaGardenStateLegend(language: language)
+                    HasanaGardenHint(language: language)
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 22)
             }
             .allowsHitTesting(false)
             .environment(\.layoutDirection, language.layoutDirection)
@@ -85,7 +88,8 @@ private struct HasanaGardenA11yOverlay: View {
                         onPracticeSelected(practiceState.practice.id)
                     } label: {
                         Color.clear
-                            .frame(width: 80, height: 80)
+                            .frame(width: 88, height: 88)
+                            .contentShape(Rectangle())
                     }
                     .position(screenPos)
                     .accessibilityLabel(accessibilityLabel(for: practiceState))
@@ -786,6 +790,8 @@ private struct HasanaGardenStatusBar: View {
                 .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.8)
         }
         .shadow(color: HasanaTheme.shadow.opacity(0.1), radius: 14, x: 0, y: 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
     private func statusItem(icon: String, value: String, label: String, color: Color) -> some View {
@@ -827,6 +833,63 @@ private struct HasanaGardenStatusBar: View {
             "total"
         }
     }
+
+    private var accessibilitySummary: String {
+        switch language {
+        case .arabic:
+            "\(tendedTodayCount) من \(totalCount) تم اليوم. إجمالي أيام الرعاية \(totalTendedDays)."
+        case .english:
+            "\(tendedTodayCount) of \(totalCount) tended today. \(totalTendedDays) total tended days."
+        }
+    }
+}
+
+private struct HasanaGardenStateLegend: View {
+    let language: HasanaLanguage
+
+    var body: some View {
+        HStack(spacing: 8) {
+            legendItem(icon: "checkmark.seal.fill", text: tendedText, color: HasanaTheme.gold)
+            legendItem(icon: "circle", text: untendedText, color: HasanaTheme.textMuted)
+            legendItem(icon: "leaf.arrow.circlepath", text: dormantText, color: HasanaTheme.reflection)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .background(HasanaTheme.elevatedSurface.opacity(0.46), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(HasanaTheme.border.opacity(0.4), lineWidth: 0.7)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func legendItem(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .accessibilityHidden(true)
+
+            Text(text)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(HasanaTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+    }
+
+    private var tendedText: String {
+        language == .arabic ? "تم" : "Tended"
+    }
+
+    private var untendedText: String {
+        language == .arabic ? "لم يتم" : "Untended"
+    }
+
+    private var dormantText: String {
+        language == .arabic ? "نائمة" : "Dormant"
+    }
 }
 
 // MARK: - Garden Hint
@@ -837,10 +900,11 @@ private struct HasanaGardenHint: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "rotate.3d")
-                .font(.system(size: 12, weight: .bold))
+                .font(.caption.weight(.bold))
+                .accessibilityHidden(true)
 
             Text(text)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.caption.weight(.semibold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
         }
@@ -853,6 +917,7 @@ private struct HasanaGardenHint: View {
             Capsule()
                 .stroke(HasanaTheme.border.opacity(0.38), lineWidth: 0.7)
         }
+        .accessibilityElement(children: .combine)
     }
 
     private var text: String {

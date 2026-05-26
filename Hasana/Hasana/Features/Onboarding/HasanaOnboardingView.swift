@@ -47,34 +47,44 @@ struct HasanaOnboardingView: View {
             } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "globe")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
+                        .accessibilityHidden(true)
 
                     Text(language.displayName)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
                 .foregroundStyle(HasanaTheme.textPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
+                .frame(minHeight: 44)
                 .background(HasanaTheme.elevatedSurface.opacity(0.78), in: Capsule())
                 .overlay {
                     Capsule()
                         .stroke(HasanaTheme.border.opacity(0.72), lineWidth: 0.8)
                 }
             }
+            .accessibilityLabel(copy.languagePickerLabel)
+            .accessibilityHint(copy.languagePickerHint)
 
             Spacer()
 
             Text(copy.progressText(current: selectedPage + 1, total: copy.pages.count))
-                .font(.system(size: 13, weight: .bold))
+                .font(.footnote.weight(.bold))
                 .foregroundStyle(HasanaTheme.textMuted)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .accessibilityLabel(copy.progressText(current: selectedPage + 1, total: copy.pages.count))
 
             Button(copy.skip) {
                 onFinished()
             }
-            .font(.system(size: 14, weight: .semibold))
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(HasanaTheme.textMuted)
+            .frame(minHeight: 44)
+            .accessibilityHint(copy.skipHint)
         }
         .padding(.horizontal, 22)
         .padding(.top, 18)
@@ -100,7 +110,7 @@ struct HasanaOnboardingView: View {
                         }
                     } label: {
                         Image(systemName: language == .arabic ? "arrow.right" : "arrow.left")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.headline.weight(.bold))
                             .foregroundStyle(HasanaTheme.textPrimary)
                             .frame(width: 56, height: 56)
                             .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -110,6 +120,8 @@ struct HasanaOnboardingView: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(copy.previous)
+                    .accessibilityHint(copy.previousHint)
                 }
 
                 Button {
@@ -123,12 +135,14 @@ struct HasanaOnboardingView: View {
                 } label: {
                     HStack(spacing: 9) {
                         Text(selectedPage == copy.pages.count - 1 ? copy.start : copy.next)
-                            .font(.system(size: 17, weight: .bold))
-                            .lineLimit(1)
+                            .font(.headline.weight(.bold))
+                            .lineLimit(2)
                             .minimumScaleFactor(0.82)
+                            .multilineTextAlignment(.center)
 
                         Image(systemName: selectedPage == copy.pages.count - 1 ? "checkmark" : (language == .arabic ? "arrow.left" : "arrow.right"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.subheadline.weight(.bold))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 56)
@@ -136,6 +150,7 @@ struct HasanaOnboardingView: View {
                     .shadow(color: HasanaTheme.shadow.opacity(0.16), radius: 18, x: 0, y: 10)
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint(selectedPage == copy.pages.count - 1 ? copy.startHint : copy.nextHint)
             }
         }
         .padding(.horizontal, 22)
@@ -159,19 +174,19 @@ private struct OnboardingPageView: View {
 
             VStack(spacing: 12) {
                 Text(page.title)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(HasanaTheme.textPrimary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
+                    .lineLimit(4)
                     .minimumScaleFactor(0.72)
 
                 Text(page.message)
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.body.weight(.medium))
                     .foregroundStyle(HasanaTheme.textMuted)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
                     .frame(maxWidth: 330)
-                    .lineLimit(5)
+                    .lineLimit(6)
                     .minimumScaleFactor(0.86)
 
                 VStack(spacing: 8) {
@@ -266,15 +281,16 @@ private struct OnboardingHighlightRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: highlight.symbolName)
-                .font(.system(size: 12, weight: .bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(HasanaTheme.accent)
                 .frame(width: 28, height: 28)
                 .background(HasanaTheme.accentSoft.opacity(0.72), in: Circle())
+                .accessibilityHidden(true)
 
             Text(highlight.text)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(HasanaTheme.textPrimary)
-                .lineLimit(2)
+                .lineLimit(3)
                 .minimumScaleFactor(0.84)
 
             Spacer(minLength: 0)
@@ -378,12 +394,75 @@ private struct OnboardingCopy {
         }
     }
 
+    var previous: String {
+        switch language {
+        case .arabic:
+            "السابق"
+        case .english:
+            "Previous"
+        }
+    }
+
     var start: String {
         switch language {
         case .arabic:
             "ابدأ حديقتي"
         case .english:
             "Start my garden"
+        }
+    }
+
+    var languagePickerLabel: String {
+        switch language {
+        case .arabic:
+            "اختيار اللغة، العربية"
+        case .english:
+            "Language picker, English"
+        }
+    }
+
+    var languagePickerHint: String {
+        switch language {
+        case .arabic:
+            "افتح القائمة لتغيير لغة التطبيق."
+        case .english:
+            "Open the menu to change the app language."
+        }
+    }
+
+    var skipHint: String {
+        switch language {
+        case .arabic:
+            "يتجاوز المقدمة ويفتح الحديقة."
+        case .english:
+            "Skips onboarding and opens the garden."
+        }
+    }
+
+    var previousHint: String {
+        switch language {
+        case .arabic:
+            "يعرض صفحة المقدمة السابقة."
+        case .english:
+            "Shows the previous onboarding page."
+        }
+    }
+
+    var nextHint: String {
+        switch language {
+        case .arabic:
+            "يعرض صفحة المقدمة التالية."
+        case .english:
+            "Shows the next onboarding page."
+        }
+    }
+
+    var startHint: String {
+        switch language {
+        case .arabic:
+            "ينهي المقدمة ويفتح الحديقة."
+        case .english:
+            "Finishes onboarding and opens the garden."
         }
     }
 

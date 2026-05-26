@@ -86,7 +86,7 @@ struct HasanaGardenLogSheet: View {
                                     }
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .frame(minWidth: 46)
+                                    .frame(minWidth: 48, minHeight: 48)
                                     .background(
                                         isSelected ? HasanaTheme.accent : HasanaTheme.elevatedSurface.opacity(0.8),
                                         in: RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -98,6 +98,8 @@ struct HasanaGardenLogSheet: View {
                                     .shadow(color: isSelected ? HasanaTheme.accent.opacity(0.24) : Color.clear, radius: 8, x: 0, y: 4)
                                 }
                                 .buttonStyle(CalendarPressButtonStyle())
+                                .accessibilityLabel(calendarAccessibilityLabel(for: day, isToday: isToday, isSelected: isSelected))
+                                .accessibilityHint(copy.calendarHint)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -111,6 +113,7 @@ struct HasanaGardenLogSheet: View {
                                 practice: practiceState.practice,
                                 progress: practiceState.progress,
                                 isTendedToday: practiceState.isTendedToday,
+                                isDormant: practiceState.isDormant,
                                 isTodaySelected: store.selectedDayKey == store.todayKey,
                                 isSelected: store.selectedPracticeID == practiceState.practice.id,
                                 language: language,
@@ -161,12 +164,27 @@ struct HasanaGardenLogSheet: View {
             }
         }
     }
+
+    private func calendarAccessibilityLabel(for day: HasanaCalendarDay, isToday: Bool, isSelected: Bool) -> String {
+        var parts = [
+            day.weekdayName(for: language),
+            day.dayNumber
+        ]
+        if isToday {
+            parts.append(copy.today)
+        }
+        if isSelected {
+            parts.append(copy.selected)
+        }
+        return parts.joined(separator: ", ")
+    }
 }
 
 private struct GardenPracticeLogCard: View {
     let practice: HasanaGardenPractice
     let progress: HasanaGardenProgress
     let isTendedToday: Bool
+    let isDormant: Bool
     let isTodaySelected: Bool
     let isSelected: Bool
     let language: HasanaLanguage
@@ -189,8 +207,30 @@ private struct GardenPracticeLogCard: View {
     private var actionLabel: String {
         if isTendedToday {
             return isTodaySelected ? copy.tendedToday : (language == .arabic ? "تم" : "Tended")
+        } else if isDormant {
+            return copy.returnToCare
         } else {
             return isTodaySelected ? copy.tendToday : (language == .arabic ? "ازرع" : "Tend")
+        }
+    }
+
+    private var stateLabel: String {
+        if isTendedToday {
+            copy.tendedToday
+        } else if isDormant {
+            copy.dormant
+        } else {
+            copy.notTendedToday
+        }
+    }
+
+    private var stateIcon: String {
+        if isTendedToday {
+            "checkmark.seal.fill"
+        } else if isDormant {
+            "leaf.arrow.circlepath"
+        } else {
+            "circle"
         }
     }
 
@@ -224,38 +264,67 @@ private struct GardenPracticeLogCard: View {
 
                     Spacer(minLength: 0)
 
-                    if isTendedToday {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(HasanaTheme.gold)
+                    HStack(spacing: 5) {
+                        Image(systemName: stateIcon)
+                            .font(.caption.weight(.bold))
+                            .accessibilityHidden(true)
+
+                        Text(stateLabel)
+                            .font(.caption2.weight(.bold))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.76)
+                    }
+                    .foregroundStyle(isTendedToday ? HasanaTheme.textPrimary : accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(
+                        (isTendedToday ? HasanaTheme.goldSoft : accentColor.opacity(0.12)),
+                        in: Capsule()
+                    )
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        GardenChip(
+                            title: practice.religiousStatus.title(for: language),
+                            color: accentColor
+                        )
+
+                        GardenChip(
+                            title: progress.growthStage.title(for: language),
+                            color: HasanaTheme.textMuted
+                        )
+
+                        Spacer(minLength: 0)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        GardenChip(
+                            title: practice.religiousStatus.title(for: language),
+                            color: accentColor
+                        )
+
+                        GardenChip(
+                            title: progress.growthStage.title(for: language),
+                            color: HasanaTheme.textMuted
+                        )
                     }
                 }
 
                 HStack(spacing: 8) {
-                    GardenChip(
-                        title: practice.religiousStatus.title(for: language),
-                        color: accentColor
-                    )
-
-                    GardenChip(
-                        title: progress.growthStage.title(for: language),
-                        color: HasanaTheme.textMuted
-                    )
-
-                    Spacer(minLength: 0)
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: isTendedToday ? "checkmark.seal.fill" : "drop.fill")
-                        .font(.system(size: 14, weight: .bold))
+                    Image(systemName: stateIcon)
+                        .font(.body.weight(.bold))
+                        .accessibilityHidden(true)
 
                     Text(actionLabel)
-                        .font(.system(size: 15, weight: .bold))
-                        .lineLimit(1)
+                        .font(.body.weight(.bold))
+                        .lineLimit(2)
                         .minimumScaleFactor(0.82)
+                        .multilineTextAlignment(.center)
                 }
                 .foregroundStyle(isTendedToday ? HasanaTheme.textPrimary : .white)
-                .frame(maxWidth: .infinity, minHeight: 42)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .padding(.horizontal, 8)
                 .background(
                     isTendedToday ? HasanaTheme.goldSoft.opacity(0.86) : accentColor,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -266,7 +335,7 @@ private struct GardenPracticeLogCard: View {
                 }
             }
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 176, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
             .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -280,7 +349,7 @@ private struct GardenPracticeLogCard: View {
     }
 
     private var accessibilityLabel: String {
-        "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(isTendedToday ? copy.tendedToday : copy.notTendedToday)"
+        "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(stateLabel)"
     }
 }
 
@@ -290,10 +359,10 @@ private struct GardenChip: View {
 
     var body: some View {
         Text(title)
-            .font(.system(size: 11, weight: .bold))
+            .font(.caption2.weight(.bold))
             .foregroundStyle(color)
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
+            .lineLimit(2)
+            .minimumScaleFactor(0.76)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(color.opacity(0.1), in: Capsule())
@@ -345,6 +414,51 @@ struct GardenLogCopy {
             "لم يتم اليوم"
         case .english:
             "Not tended today"
+        }
+    }
+
+    var dormant: String {
+        switch language {
+        case .arabic:
+            "نائمة بلطف"
+        case .english:
+            "Gently dormant"
+        }
+    }
+
+    var returnToCare: String {
+        switch language {
+        case .arabic:
+            "عد للرعاية"
+        case .english:
+            "Return to care"
+        }
+    }
+
+    var today: String {
+        switch language {
+        case .arabic:
+            "اليوم"
+        case .english:
+            "Today"
+        }
+    }
+
+    var selected: String {
+        switch language {
+        case .arabic:
+            "محدد"
+        case .english:
+            "Selected"
+        }
+    }
+
+    var calendarHint: String {
+        switch language {
+        case .arabic:
+            "اضغط لتغيير يوم التسجيل."
+        case .english:
+            "Tap to change the logging day."
         }
     }
 
