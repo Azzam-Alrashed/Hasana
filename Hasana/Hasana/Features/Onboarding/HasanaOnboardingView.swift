@@ -493,12 +493,12 @@ private struct OnboardingCopy {
                     title: "عباداتك تصنع حديقة عمر",
                     message: "ابدأ من أفعال صغيرة قابلة للاستمرار، وشاهد أثرها ينمو أمامك.",
                     symbolName: "leaf.fill",
-                    metricSymbolName: "flame.fill",
-                    metricValue: "٣ أيام",
-                    metricCaption: "سلسلة لطيفة",
+                    metricSymbolName: "checkmark.seal.fill",
+                    metricValue: "٨",
+                    metricCaption: "عبادات أساسية",
                     highlights: [
                         highlight("garden-a", "checkmark.circle.fill", "سجل حسنة اليوم بضغطة واحدة"),
-                        highlight("garden-b", "chart.line.uptrend.xyaxis", "تابع نمو العادة بلا ضغط")
+                        highlight("garden-b", "leaf.fill", "تابع نمو الحديقة بلا ضغط")
                     ],
                     plants: plantSetOne
                 ),
@@ -518,14 +518,14 @@ private struct OnboardingCopy {
                 ),
                 OnboardingPage(
                     id: "discovery",
-                    title: "اكتشف سننا جميلة",
-                    message: "مع الوقت، تظهر نباتات نادرة وفرص موسمية تقربك بخطوات صغيرة.",
-                    symbolName: "sparkles",
-                    metricSymbolName: "gift.fill",
-                    metricValue: "سنن",
-                    metricCaption: "تظهر مع الاستمرار",
+                    title: "حديقة خاصة بك",
+                    message: "تقدمك يبقى على جهازك، وتعود للعبادات الأساسية متى احتجت.",
+                    symbolName: "lock.fill",
+                    metricSymbolName: "leaf.circle.fill",
+                    metricValue: "محلي",
+                    metricCaption: "بياناتك لك",
                     highlights: [
-                        highlight("discovery-a", "sparkles", "افتح مسارات عبادة جديدة"),
+                        highlight("discovery-a", "lock.fill", "سجل عبادتك بخصوصية وطمأنينة"),
                         highlight("discovery-b", "sun.max.fill", "ابدأ بحديقة جاهزة للرعاية")
                     ],
                     plants: plantSetThree
@@ -538,12 +538,12 @@ private struct OnboardingCopy {
                     title: "Your worship grows a lifelong garden",
                     message: "Begin with small actions you can keep, then watch their impact grow.",
                     symbolName: "leaf.fill",
-                    metricSymbolName: "flame.fill",
-                    metricValue: "3 days",
-                    metricCaption: "Gentle streak",
+                    metricSymbolName: "checkmark.seal.fill",
+                    metricValue: "8",
+                    metricCaption: "Core practices",
                     highlights: [
                         highlight("garden-a", "checkmark.circle.fill", "Log today’s good deed in one tap"),
-                        highlight("garden-b", "chart.line.uptrend.xyaxis", "Track habit growth without pressure")
+                        highlight("garden-b", "leaf.fill", "Follow garden growth without pressure")
                     ],
                     plants: plantSetOne
                 ),
@@ -563,14 +563,14 @@ private struct OnboardingCopy {
                 ),
                 OnboardingPage(
                     id: "discovery",
-                    title: "Discover beautiful Sunnahs",
-                    message: "Over time, rare plants and seasonal opportunities appear in small, welcoming steps.",
-                    symbolName: "sparkles",
-                    metricSymbolName: "gift.fill",
-                    metricValue: "Sunnahs",
-                    metricCaption: "Unlocked by consistency",
+                    title: "A garden that stays yours",
+                    message: "Your progress stays on this device, ready whenever you return to the core practices.",
+                    symbolName: "lock.fill",
+                    metricSymbolName: "leaf.circle.fill",
+                    metricValue: "Local",
+                    metricCaption: "Your data stays yours",
                     highlights: [
-                        highlight("discovery-a", "sparkles", "Open new worship paths over time"),
+                        highlight("discovery-a", "lock.fill", "Log worship with privacy and calm"),
                         highlight("discovery-b", "sun.max.fill", "Start with a garden ready to tend")
                     ],
                     plants: plantSetThree

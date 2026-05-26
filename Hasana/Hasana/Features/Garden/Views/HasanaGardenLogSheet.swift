@@ -214,16 +214,6 @@ private struct GardenPracticeLogCard: View {
         }
     }
 
-    private var stateLabel: String {
-        if isTendedToday {
-            copy.tendedToday
-        } else if isDormant {
-            copy.dormant
-        } else {
-            copy.notTendedToday
-        }
-    }
-
     private var stateIcon: String {
         if isTendedToday {
             "checkmark.seal.fill"
@@ -234,6 +224,26 @@ private struct GardenPracticeLogCard: View {
         }
     }
 
+    private var stateSymbolName: String {
+        if isTendedToday {
+            "checkmark.seal.fill"
+        } else if isDormant {
+            "moon.zzz.fill"
+        } else {
+            "circle.dotted"
+        }
+    }
+
+    private var stateLabel: String {
+        if isTendedToday {
+            copy.tendedToday
+        } else if isDormant {
+            copy.dormant
+        } else {
+            copy.notTendedToday
+        }
+    }
+
     var body: some View {
         Button(action: onToggle) {
             VStack(alignment: .leading, spacing: 14) {
@@ -241,6 +251,10 @@ private struct GardenPracticeLogCard: View {
                     ZStack {
                         Circle()
                             .fill(accentColor.opacity(isTendedToday ? 0.2 : 0.1))
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(isTendedToday ? HasanaTheme.gold.opacity(0.72) : HasanaTheme.border.opacity(0.7), lineWidth: isTendedToday ? 1.4 : 0.8)
+                            }
 
                         Image(systemName: practice.icon)
                             .font(.system(size: 18, weight: .bold))
@@ -260,6 +274,22 @@ private struct GardenPracticeLogCard: View {
                             .foregroundStyle(HasanaTheme.textMuted)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        Label(stateLabel, systemImage: stateSymbolName)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(isTendedToday ? HasanaTheme.textPrimary : HasanaTheme.textMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(
+                                isTendedToday ? HasanaTheme.goldSoft.opacity(0.9) : HasanaTheme.elevatedSurfaceSoft.opacity(0.92),
+                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(isTendedToday ? HasanaTheme.gold.opacity(0.48) : HasanaTheme.border.opacity(0.58), lineWidth: 0.8)
+                            }
                     }
 
                     Spacer(minLength: 0)
@@ -326,7 +356,7 @@ private struct GardenPracticeLogCard: View {
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .padding(.horizontal, 8)
                 .background(
-                    isTendedToday ? HasanaTheme.goldSoft.opacity(0.86) : accentColor,
+                    isTendedToday ? HasanaTheme.goldSoft.opacity(0.9) : accentColor,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                 )
                 .overlay {
@@ -336,7 +366,7 @@ private struct GardenPracticeLogCard: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-            .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(HasanaTheme.elevatedSurface.opacity(0.94), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(isSelected ? accentColor.opacity(0.86) : HasanaTheme.border.opacity(0.58), lineWidth: isSelected ? 1.4 : 0.8)

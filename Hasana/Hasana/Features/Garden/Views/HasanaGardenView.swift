@@ -790,27 +790,45 @@ private struct HasanaGardenStatusBar: View {
     let language: HasanaLanguage
 
     var body: some View {
-        HStack(spacing: 10) {
-            statusItem(
-                icon: "checkmark.seal.fill",
-                value: "\(tendedTodayCount)/\(totalCount)",
-                label: todayLabel,
-                color: HasanaTheme.accent
-            )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                statusItem(
+                    icon: "checkmark.seal.fill",
+                    value: "\(tendedTodayCount)/\(totalCount)",
+                    label: todayLabel,
+                    color: HasanaTheme.accent
+                )
 
-            statusItem(
-                icon: "leaf.fill",
-                value: "\(totalTendedDays)",
-                label: totalLabel,
-                color: HasanaTheme.gold
-            )
+                statusItem(
+                    icon: "leaf.fill",
+                    value: "\(totalTendedDays)",
+                    label: totalLabel,
+                    color: HasanaTheme.gold
+                )
+            }
+
+            VStack(spacing: 8) {
+                statusItem(
+                    icon: "checkmark.seal.fill",
+                    value: "\(tendedTodayCount)/\(totalCount)",
+                    label: todayLabel,
+                    color: HasanaTheme.accent
+                )
+
+                statusItem(
+                    icon: "leaf.fill",
+                    value: "\(totalTendedDays)",
+                    label: totalLabel,
+                    color: HasanaTheme.gold
+                )
+            }
         }
-        .padding(7)
-        .background(.ultraThinMaterial, in: Capsule())
-        .background(HasanaTheme.elevatedSurface.opacity(0.56), in: Capsule())
+        .padding(8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(HasanaTheme.elevatedSurface.opacity(0.76), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            Capsule()
-                .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(0.68), lineWidth: 0.8)
         }
         .shadow(color: HasanaTheme.shadow.opacity(0.1), radius: 14, x: 0, y: 8)
         .accessibilityElement(children: .ignore)
@@ -822,21 +840,23 @@ private struct HasanaGardenStatusBar: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(color)
+                .frame(width: 24, height: 24)
+                .background(color.opacity(0.12), in: Circle())
 
             Text(value)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(HasanaTheme.textPrimary)
                 .monospacedDigit()
 
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(HasanaTheme.textMuted)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.8)
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
-        .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.52), in: Capsule())
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.74), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var todayLabel: String {
@@ -921,26 +941,44 @@ private struct HasanaGardenHint: View {
     let language: HasanaLanguage
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "rotate.3d")
-                .font(.caption.weight(.bold))
-                .accessibilityHidden(true)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                hintIcon("rotate.3d")
+                hintIcon("magnifyingglass")
+                hintIcon("hand.tap.fill")
 
-            Text(text)
-                .font(.caption.weight(.semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
+                Text(text)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.84)
+            }
+
+            HStack(spacing: 8) {
+                hintIcon("hand.tap.fill")
+
+                Text(shortText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.84)
+            }
         }
         .foregroundStyle(HasanaTheme.textMuted)
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(.ultraThinMaterial, in: Capsule())
-        .background(HasanaTheme.elevatedSurface.opacity(0.42), in: Capsule())
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(HasanaTheme.elevatedSurface.opacity(0.68), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            Capsule()
-                .stroke(HasanaTheme.border.opacity(0.38), lineWidth: 0.7)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.7)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private func hintIcon(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 12, weight: .bold))
+            .frame(width: 24, height: 24)
+            .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.72), in: Circle())
     }
 
     private var text: String {
@@ -949,6 +987,15 @@ private struct HasanaGardenHint: View {
             "اسحب لتدوير الحديقة، وقرّب بإصبعين، واضغط على نبتة للتسجيل"
         case .english:
             "Drag to orbit, pinch to zoom, tap a plant to log"
+        }
+    }
+
+    private var shortText: String {
+        switch language {
+        case .arabic:
+            "اضغط على نبتة للتسجيل"
+        case .english:
+            "Tap a plant to log"
         }
     }
 }
