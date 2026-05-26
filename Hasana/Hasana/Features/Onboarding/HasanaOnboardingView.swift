@@ -17,7 +17,7 @@ struct HasanaOnboardingView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                onboardingHeader
+                onboardingHeader(isCompact: geometry.size.width < 380)
 
                 TabView(selection: $selectedPage) {
                     ForEach(Array(copy.pages.enumerated()), id: \.element.id) { index, page in
@@ -27,7 +27,7 @@ struct HasanaOnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
-                onboardingFooter
+                onboardingFooter(isCompact: geometry.size.height < 720)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(HasanaTheme.canvasBackground.ignoresSafeArea())
@@ -36,8 +36,8 @@ struct HasanaOnboardingView: View {
         .environment(\.locale, Locale(identifier: language.localeIdentifier))
     }
 
-    private var onboardingHeader: some View {
-        HStack(spacing: 12) {
+    private func onboardingHeader(isCompact: Bool) -> some View {
+        HStack(spacing: isCompact ? 8 : 12) {
             Menu {
                 ForEach(HasanaLanguage.allCases) { language in
                     Button(language.displayName) {
@@ -52,9 +52,10 @@ struct HasanaOnboardingView: View {
                     Text(language.displayName)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
                 .foregroundStyle(HasanaTheme.textPrimary)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, isCompact ? 10 : 12)
                 .padding(.vertical, 9)
                 .background(HasanaTheme.elevatedSurface.opacity(0.78), in: Capsule())
                 .overlay {
@@ -69,20 +70,26 @@ struct HasanaOnboardingView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(HasanaTheme.textMuted)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .layoutPriority(1)
 
             Button(copy.skip) {
                 onFinished()
             }
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(HasanaTheme.textMuted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .layoutPriority(1)
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 18)
+        .padding(.horizontal, isCompact ? 16 : 22)
+        .padding(.top, isCompact ? 14 : 18)
         .padding(.bottom, 6)
     }
 
-    private var onboardingFooter: some View {
-        VStack(spacing: 18) {
+    private func onboardingFooter(isCompact: Bool) -> some View {
+        VStack(spacing: isCompact ? 14 : 18) {
             HStack(spacing: 8) {
                 ForEach(copy.pages.indices, id: \.self) { index in
                     Capsule()
@@ -125,7 +132,8 @@ struct HasanaOnboardingView: View {
                         Text(selectedPage == copy.pages.count - 1 ? copy.start : copy.next)
                             .font(.system(size: 17, weight: .bold))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                            .minimumScaleFactor(0.74)
+                            .layoutPriority(1)
 
                         Image(systemName: selectedPage == copy.pages.count - 1 ? "checkmark" : (language == .arabic ? "arrow.left" : "arrow.right"))
                             .font(.system(size: 15, weight: .bold))
@@ -138,8 +146,8 @@ struct HasanaOnboardingView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 28)
+        .padding(.horizontal, isCompact ? 16 : 22)
+        .padding(.bottom, isCompact ? 18 : 28)
     }
 }
 
@@ -148,43 +156,46 @@ private struct OnboardingPageView: View {
     let geometry: GeometryProxy
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 8)
+        let isCompactHeight = geometry.size.height < 720
+        let sceneWidth = min(max(geometry.size.width - (isCompactHeight ? 48 : 64), 236), isCompactHeight ? 270 : 310)
+        let sceneHeight = min(max(geometry.size.height * (isCompactHeight ? 0.26 : 0.34), 184), isCompactHeight ? 236 : 310)
+
+        VStack(spacing: isCompactHeight ? 16 : 28) {
+            Spacer(minLength: isCompactHeight ? 0 : 8)
 
             OnboardingGardenScene(page: page)
-                .frame(
-                    width: min(geometry.size.width - 64, 310),
-                    height: min(max(geometry.size.height * 0.34, 230), 310)
-                )
+                .frame(width: sceneWidth, height: sceneHeight)
 
-            VStack(spacing: 12) {
+            VStack(spacing: isCompactHeight ? 10 : 12) {
                 Text(page.title)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: isCompactHeight ? 28 : 32, weight: .bold, design: .rounded))
                     .foregroundStyle(HasanaTheme.textPrimary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.72)
+                    .lineLimit(isCompactHeight ? 4 : 3)
+                    .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(page.message)
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: isCompactHeight ? 15 : 17, weight: .medium))
                     .foregroundStyle(HasanaTheme.textMuted)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(4)
+                    .lineSpacing(isCompactHeight ? 2 : 4)
                     .frame(maxWidth: 330)
-                    .lineLimit(5)
-                    .minimumScaleFactor(0.86)
+                    .lineLimit(isCompactHeight ? 6 : 5)
+                    .minimumScaleFactor(0.78)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(spacing: 8) {
+                VStack(spacing: isCompactHeight ? 6 : 8) {
                     ForEach(page.highlights) { highlight in
                         OnboardingHighlightRow(highlight: highlight)
                     }
                 }
-                .padding(.top, 8)
+                .padding(.top, isCompactHeight ? 4 : 8)
                 .frame(maxWidth: 342)
             }
-            .padding(.horizontal, 28)
+            .padding(.horizontal, isCompactHeight ? 20 : 28)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: isCompactHeight ? 0 : 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -275,7 +286,8 @@ private struct OnboardingHighlightRow: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(HasanaTheme.textPrimary)
                 .lineLimit(2)
-                .minimumScaleFactor(0.84)
+                .minimumScaleFactor(0.76)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
         }
