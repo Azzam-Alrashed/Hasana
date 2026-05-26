@@ -358,7 +358,7 @@ final class HasanaAppSettings {
 
     private func applyAppIcon(_ icon: HasanaAppIcon) {
         guard UIApplication.shared.supportsAlternateIcons else {
-            appIconErrorMessage = nil
+            appIconErrorMessage = iconUnsupportedMessage
             return
         }
 
@@ -371,6 +371,15 @@ final class HasanaAppSettings {
             DispatchQueue.main.async {
                 self?.appIconErrorMessage = error?.localizedDescription
             }
+        }
+    }
+
+    private var iconUnsupportedMessage: String {
+        switch language {
+        case .arabic:
+            "تغيير أيقونة التطبيق غير مدعوم على هذا الجهاز."
+        case .english:
+            "Changing the app icon is not supported on this device."
         }
     }
 }

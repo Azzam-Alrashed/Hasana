@@ -43,13 +43,5 @@ struct HasanaNodeView: View {
         .shadow(color: node.theme.color.opacity(isDragging ? 0.32 : node.theme.glowOpacity), radius: isDragging ? 22 : 14, x: 0, y: isDragging ? 14 : 8)
         .scaleEffect(isDragging ? 1.035 : 1)
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isDragging)
-        .background(
-            GeometryReader { geometry in
-                Color.clear.preference(
-                    key: NodeFramePreferenceKey.self,
-                    value: [node.id: NodeFrameData(nodeID: node.id, frame: geometry.frame(in: .named("hasanaCanvas")))]
-                )
-            }
-        )
     }
 }

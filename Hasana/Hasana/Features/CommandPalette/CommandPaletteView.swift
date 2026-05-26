@@ -43,6 +43,11 @@ struct CommandPaletteView: View {
                                 }
                             }
                         }
+                    } else {
+                        CommandPaletteEmptyState(language: commandPaletteLanguage)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 2)
+                            .padding(.bottom, 18)
                     }
                 }
                 .frame(maxWidth: 480)
@@ -150,9 +155,9 @@ struct CommandPaletteView: View {
     private var commandPalettePlaceholder: String {
         switch commandPaletteLanguage {
         case .arabic:
-            "اكتب فكرة جديدة أو ابحث..."
+            "ابحث عن إجراء..."
         case .english:
-            "Type a new idea or search..."
+            "Search actions..."
         }
     }
 
@@ -177,6 +182,16 @@ private struct CommandResultsList: View {
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 4) {
             ForEach(sections) { section in
+                if let title = section.title {
+                    Text(title)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(HasanaTheme.textMuted)
+                        .textCase(.uppercase)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        .padding(.bottom, 2)
+                }
+
                 ForEach(section.results) { result in
                     ResultRow(
                         result: result,
@@ -215,7 +230,7 @@ private struct CommandRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 Image(systemName: command.icon)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(isSelected ? HasanaTheme.accent : HasanaTheme.textMuted)
@@ -223,26 +238,88 @@ private struct CommandRow: View {
                     .background(isSelected ? HasanaTheme.accent.opacity(0.12) : HasanaTheme.textMuted.opacity(0.06))
                     .clipShape(Circle())
 
-                Text(command.title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(HasanaTheme.textPrimary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(command.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(HasanaTheme.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.84)
 
-                Spacer()
+                    Text(command.subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(HasanaTheme.textMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
 
-                if isSelected {
-                    Image(systemName: "return")
+                Spacer(minLength: 8)
+
+                if let shortcutHint = command.shortcutHint {
+                    Text(shortcutHint)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(HasanaTheme.accent)
+                        .foregroundStyle(isSelected ? HasanaTheme.accent : HasanaTheme.textMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            isSelected ? HasanaTheme.elevatedSurface.opacity(0.72) : HasanaTheme.textMuted.opacity(0.08),
+                            in: Capsule()
+                        )
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: 44)
+            .padding(.vertical, 9)
+            .frame(minHeight: 56)
             .background(isSelected ? HasanaTheme.accentSoft.opacity(0.48) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
+    }
+}
+
+private struct CommandPaletteEmptyState: View {
+    let language: HasanaLanguage
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "sparkle.magnifyingglass")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(HasanaTheme.textMuted.opacity(0.72))
+                .frame(width: 48, height: 48)
+                .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.72), in: Circle())
+
+            Text(title)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(HasanaTheme.textPrimary)
+
+            Text(message)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(HasanaTheme.textMuted)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+    }
+
+    private var title: String {
+        switch language {
+        case .arabic:
+            "لا توجد نتائج"
+        case .english:
+            "No matches"
+        }
+    }
+
+    private var message: String {
+        switch language {
+        case .arabic:
+            "جرب كلمة أخرى أو افتح أحد الأوامر من القائمة."
+        case .english:
+            "Try another word or choose one of the available actions."
+        }
     }
 }
 

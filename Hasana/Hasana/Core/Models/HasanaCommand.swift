@@ -2,7 +2,8 @@ import SwiftUI
 
 enum HasanaCommandID: String, CaseIterable, Identifiable, Hashable, Codable {
     case resetView
-    case clearCanvas
+    case logWorship
+    case openPayments
     case openSettings
 
     var id: String { rawValue }
@@ -10,6 +11,7 @@ enum HasanaCommandID: String, CaseIterable, Identifiable, Hashable, Codable {
 
 enum HasanaCommandCategory: String, Hashable {
     case canvas
+    case giving
     case app
 
     var title: String {
@@ -19,9 +21,13 @@ enum HasanaCommandCategory: String, Hashable {
     func title(for language: HasanaLanguage) -> String {
         switch (self, language) {
         case (.canvas, .arabic):
-            "اللوحة"
+            "الحديقة"
         case (.canvas, .english):
-            "Canvas"
+            "Garden"
+        case (.giving, .arabic):
+            "العطاء"
+        case (.giving, .english):
+            "Giving"
         case (.app, .arabic):
             "التطبيق"
         case (.app, .english):
@@ -75,13 +81,22 @@ struct HasanaCommand: Identifiable, Hashable {
                     shortcutHint: "المركز"
                 ),
                 HasanaCommand(
-                    id: .clearCanvas,
-                    title: "مسح اللوحة",
-                    subtitle: "حذف جميع البطاقات المضافة",
-                    icon: "trash",
+                    id: .logWorship,
+                    title: "تسجيل عبادة",
+                    subtitle: "ازرع لحظة اليوم في الحديقة",
+                    icon: "heart.fill",
                     category: .canvas,
-                    keywords: ["clear", "delete", "remove", "clean", "مسح", "حذف", "تنظيف"],
-                    shortcutHint: "مسح"
+                    keywords: ["log", "worship", "garden", "tend", "prayer", "quran", "dhikr", "تسجيل", "عبادة", "حديقة", "صلاة", "قرآن", "ذكر"],
+                    shortcutHint: "تسجيل"
+                ),
+                HasanaCommand(
+                    id: .openPayments,
+                    title: "دعم التطبيق",
+                    subtitle: "تبرع للمساعدة في تطوير حسنة",
+                    icon: "creditcard.fill",
+                    category: .giving,
+                    keywords: ["payments", "payment", "pay", "support", "development", "donation", "مدفوعات", "دعم", "تطوير", "تبرع"],
+                    shortcutHint: "دعم"
                 ),
                 HasanaCommand(
                     id: .openSettings,
@@ -105,13 +120,22 @@ struct HasanaCommand: Identifiable, Hashable {
                     shortcutHint: "Center"
                 ),
                 HasanaCommand(
-                    id: .clearCanvas,
-                    title: "Clear Canvas",
-                    subtitle: "Delete all added cards",
-                    icon: "trash",
+                    id: .logWorship,
+                    title: "Log Worship",
+                    subtitle: "Tend today's garden",
+                    icon: "heart.fill",
                     category: .canvas,
-                    keywords: ["clear", "delete", "remove", "clean", "مسح", "حذف", "تنظيف"],
-                    shortcutHint: "Clear"
+                    keywords: ["log", "worship", "garden", "tend", "prayer", "quran", "dhikr", "تسجيل", "عبادة", "حديقة", "صلاة", "قرآن", "ذكر"],
+                    shortcutHint: "Log"
+                ),
+                HasanaCommand(
+                    id: .openPayments,
+                    title: "Support Hasana",
+                    subtitle: "Donate to support app development",
+                    icon: "creditcard.fill",
+                    category: .giving,
+                    keywords: ["payments", "payment", "pay", "support", "development", "donation", "مدفوعات", "دعم", "تطوير", "تبرع"],
+                    shortcutHint: "Support"
                 ),
                 HasanaCommand(
                     id: .openSettings,

@@ -65,6 +65,11 @@ struct HasanaOnboardingView: View {
 
             Spacer()
 
+            Text(copy.progressText(current: selectedPage + 1, total: copy.pages.count))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(HasanaTheme.textMuted)
+                .monospacedDigit()
+
             Button(copy.skip) {
                 onFinished()
             }
@@ -87,30 +92,51 @@ struct HasanaOnboardingView: View {
                 }
             }
 
-            Button {
-                if selectedPage == copy.pages.count - 1 {
-                    onFinished()
-                } else {
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                        selectedPage += 1
+            HStack(spacing: 12) {
+                if selectedPage > 0 {
+                    Button {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                            selectedPage -= 1
+                        }
+                    } label: {
+                        Image(systemName: language == .arabic ? "arrow.right" : "arrow.left")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(HasanaTheme.textPrimary)
+                            .frame(width: 56, height: 56)
+                            .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(HasanaTheme.border.opacity(0.76), lineWidth: 0.8)
+                            }
                     }
+                    .buttonStyle(.plain)
                 }
-            } label: {
-                HStack(spacing: 9) {
-                    Text(selectedPage == copy.pages.count - 1 ? copy.start : copy.next)
-                        .font(.system(size: 17, weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
 
-                    Image(systemName: language == .arabic ? "arrow.left" : "arrow.right")
-                        .font(.system(size: 15, weight: .bold))
+                Button {
+                    if selectedPage == copy.pages.count - 1 {
+                        onFinished()
+                    } else {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                            selectedPage += 1
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 9) {
+                        Text(selectedPage == copy.pages.count - 1 ? copy.start : copy.next)
+                            .font(.system(size: 17, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+
+                        Image(systemName: selectedPage == copy.pages.count - 1 ? "checkmark" : (language == .arabic ? "arrow.left" : "arrow.right"))
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(HasanaTheme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .shadow(color: HasanaTheme.shadow.opacity(0.16), radius: 18, x: 0, y: 10)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(HasanaTheme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .shadow(color: HasanaTheme.shadow.opacity(0.16), radius: 18, x: 0, y: 10)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 22)
         .padding(.bottom, 28)
@@ -147,6 +173,14 @@ private struct OnboardingPageView: View {
                     .frame(maxWidth: 330)
                     .lineLimit(5)
                     .minimumScaleFactor(0.86)
+
+                VStack(spacing: 8) {
+                    ForEach(page.highlights) { highlight in
+                        OnboardingHighlightRow(highlight: highlight)
+                    }
+                }
+                .padding(.top, 8)
+                .frame(maxWidth: 342)
             }
             .padding(.horizontal, 28)
 
@@ -184,6 +218,32 @@ private struct OnboardingGardenScene: View {
                     .offset(plant.offset)
             }
 
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: page.metricSymbolName)
+                        .font(.system(size: 11, weight: .bold))
+
+                    Text(page.metricValue)
+                        .font(.system(size: 14, weight: .bold))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(HasanaTheme.textPrimary)
+
+                Text(page.metricCaption)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(HasanaTheme.textMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(HasanaTheme.elevatedSurface.opacity(0.9), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(HasanaTheme.border.opacity(0.72), lineWidth: 0.8)
+            }
+            .offset(x: 58, y: -62)
+
             Image(systemName: page.symbolName)
                 .font(.system(size: 27, weight: .semibold))
                 .foregroundStyle(HasanaTheme.accent)
@@ -197,6 +257,35 @@ private struct OnboardingGardenScene: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 28, x: 0, y: 18)
+    }
+}
+
+private struct OnboardingHighlightRow: View {
+    let highlight: OnboardingHighlight
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: highlight.symbolName)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(HasanaTheme.accent)
+                .frame(width: 28, height: 28)
+                .background(HasanaTheme.accentSoft.opacity(0.72), in: Circle())
+
+            Text(highlight.text)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(HasanaTheme.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.84)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(HasanaTheme.elevatedSurface.opacity(0.68), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(0.54), lineWidth: 0.8)
+        }
     }
 }
 
@@ -246,7 +335,17 @@ private struct OnboardingPage: Identifiable {
     let title: String
     let message: String
     let symbolName: String
+    let metricSymbolName: String
+    let metricValue: String
+    let metricCaption: String
+    let highlights: [OnboardingHighlight]
     let plants: [OnboardingPlantModel]
+}
+
+private struct OnboardingHighlight: Identifiable {
+    let id: String
+    let symbolName: String
+    let text: String
 }
 
 private struct OnboardingPlantModel: Identifiable {
@@ -288,6 +387,15 @@ private struct OnboardingCopy {
         }
     }
 
+    func progressText(current: Int, total: Int) -> String {
+        switch language {
+        case .arabic:
+            "\(current) من \(total)"
+        case .english:
+            "\(current) of \(total)"
+        }
+    }
+
     var pages: [OnboardingPage] {
         switch language {
         case .arabic:
@@ -295,8 +403,15 @@ private struct OnboardingCopy {
                 OnboardingPage(
                     id: "garden",
                     title: "عباداتك تصنع حديقة عمر",
-                    message: "حسنة تساعدك على رؤية أثر الاستمرار بلطف، يوما بعد يوم.",
+                    message: "ابدأ من أفعال صغيرة قابلة للاستمرار، وشاهد أثرها ينمو أمامك.",
                     symbolName: "leaf.fill",
+                    metricSymbolName: "flame.fill",
+                    metricValue: "٣ أيام",
+                    metricCaption: "سلسلة لطيفة",
+                    highlights: [
+                        highlight("garden-a", "checkmark.circle.fill", "سجل حسنة اليوم بضغطة واحدة"),
+                        highlight("garden-b", "chart.line.uptrend.xyaxis", "تابع نمو العادة بلا ضغط")
+                    ],
                     plants: plantSetOne
                 ),
                 OnboardingPage(
@@ -304,6 +419,13 @@ private struct OnboardingCopy {
                     title: "الرجوع جزء من الطريق",
                     message: "لن تهدم الحديقة بسبب يوم صعب. الهدف أن تعود وتكمل بهدوء.",
                     symbolName: "heart.fill",
+                    metricSymbolName: "arrow.uturn.backward.circle.fill",
+                    metricValue: "بلا لوم",
+                    metricCaption: "عودة هادئة",
+                    highlights: [
+                        highlight("gentle-a", "moon.stars.fill", "الفوات لا يمحو ما سبق"),
+                        highlight("gentle-b", "sparkle.magnifyingglass", "اختر خطوة مناسبة لطاقتك")
+                    ],
                     plants: plantSetTwo
                 ),
                 OnboardingPage(
@@ -311,6 +433,13 @@ private struct OnboardingCopy {
                     title: "اكتشف سننا جميلة",
                     message: "مع الوقت، تظهر نباتات نادرة وفرص موسمية تقربك بخطوات صغيرة.",
                     symbolName: "sparkles",
+                    metricSymbolName: "gift.fill",
+                    metricValue: "سنن",
+                    metricCaption: "تظهر مع الاستمرار",
+                    highlights: [
+                        highlight("discovery-a", "sparkles", "افتح مسارات عبادة جديدة"),
+                        highlight("discovery-b", "sun.max.fill", "ابدأ بحديقة جاهزة للرعاية")
+                    ],
                     plants: plantSetThree
                 )
             ]
@@ -319,8 +448,15 @@ private struct OnboardingCopy {
                 OnboardingPage(
                     id: "garden",
                     title: "Your worship grows a lifelong garden",
-                    message: "Hasana helps you see gentle progress, one caring step at a time.",
+                    message: "Begin with small actions you can keep, then watch their impact grow.",
                     symbolName: "leaf.fill",
+                    metricSymbolName: "flame.fill",
+                    metricValue: "3 days",
+                    metricCaption: "Gentle streak",
+                    highlights: [
+                        highlight("garden-a", "checkmark.circle.fill", "Log today’s good deed in one tap"),
+                        highlight("garden-b", "chart.line.uptrend.xyaxis", "Track habit growth without pressure")
+                    ],
                     plants: plantSetOne
                 ),
                 OnboardingPage(
@@ -328,6 +464,13 @@ private struct OnboardingCopy {
                     title: "Returning is part of the path",
                     message: "A difficult day will not destroy your garden. Come back and continue calmly.",
                     symbolName: "heart.fill",
+                    metricSymbolName: "arrow.uturn.backward.circle.fill",
+                    metricValue: "No blame",
+                    metricCaption: "A calm return",
+                    highlights: [
+                        highlight("gentle-a", "moon.stars.fill", "Missing a day never erases the past"),
+                        highlight("gentle-b", "sparkle.magnifyingglass", "Choose a step that fits your energy")
+                    ],
                     plants: plantSetTwo
                 ),
                 OnboardingPage(
@@ -335,6 +478,13 @@ private struct OnboardingCopy {
                     title: "Discover beautiful Sunnahs",
                     message: "Over time, rare plants and seasonal opportunities appear in small, welcoming steps.",
                     symbolName: "sparkles",
+                    metricSymbolName: "gift.fill",
+                    metricValue: "Sunnahs",
+                    metricCaption: "Unlocked by consistency",
+                    highlights: [
+                        highlight("discovery-a", "sparkles", "Open new worship paths over time"),
+                        highlight("discovery-b", "sun.max.fill", "Start with a garden ready to tend")
+                    ],
                     plants: plantSetThree
                 )
             ]
@@ -382,6 +532,10 @@ private struct OnboardingCopy {
             size: CGSize(width: width, height: height),
             offset: CGSize(width: x, height: y)
         )
+    }
+
+    private func highlight(_ id: String, _ symbolName: String, _ text: String) -> OnboardingHighlight {
+        OnboardingHighlight(id: id, symbolName: symbolName, text: text)
     }
 }
 

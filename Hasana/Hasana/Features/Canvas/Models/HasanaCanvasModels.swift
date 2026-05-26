@@ -115,6 +115,8 @@ extension HasanaCanvasTheme {
         switch category {
         case .canvas:
             self = .idea
+        case .giving:
+            self = .finance
         case .app:
             self = .summary
         }

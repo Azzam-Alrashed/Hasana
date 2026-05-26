@@ -25,17 +25,37 @@ struct CommandPaletteSection: Identifiable, Hashable {
 final class CommandPaletteViewModel {
     var query: String = "" {
         didSet {
+            guard query != oldValue else { return }
             selectedIndex = 0
-            clampSelection()
+            rebuildPresentationState()
         }
     }
 
     var isPresented = false
     var selectedIndex = 0
-    var commands: [HasanaCommand] = HasanaCommand.defaults
+    var commands: [HasanaCommand] = HasanaCommand.defaults {
+        didSet {
+            refreshCommandIndex()
+            rebuildPresentationState()
+        }
+    }
 
     var onExecute: ((HasanaCommandID) -> Void)?
-    var onSubmitPrompt: ((String) -> Void)?
+    var onSubmitPrompt: ((String) -> Void)? {
+        didSet {
+            rebuildPresentationState()
+        }
+    }
+
+    private(set) var results: [CommandPaletteResult] = []
+    private(set) var sections: [CommandPaletteSection] = []
+
+    @ObservationIgnored private var indexedCommands: [IndexedCommand] = []
+
+    init() {
+        refreshCommandIndex()
+        rebuildPresentationState()
+    }
 
     var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,54 +65,28 @@ final class CommandPaletteViewModel {
         !trimmedQuery.isEmpty
     }
 
-    var results: [CommandPaletteResult] {
-        let commandResults = rankedCommands.map(CommandPaletteResult.command)
-        guard isSearching else { return commandResults }
-
-        return commandResults + [.prompt(trimmedQuery)]
-    }
-
-    var sections: [CommandPaletteSection] {
-        if isSearching {
-            return [
-                CommandPaletteSection(
-                    id: "search-results",
-                    title: rankedCommands.isEmpty ? nil : "Best matches",
-                    results: results
-                )
-            ]
-        }
-
-        return HasanaCommandCategory.displayOrder.compactMap { category in
-            let categoryCommands = commands.filter { $0.category == category }
-            guard !categoryCommands.isEmpty else { return nil }
-
-            return CommandPaletteSection(
-                id: category.rawValue,
-                title: category.title,
-                results: categoryCommands.map(CommandPaletteResult.command)
-            )
-        }
-    }
-
     var hasResults: Bool {
         !results.isEmpty
     }
 
     private var rankedCommands: [HasanaCommand] {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return commands }
 
         let queryTokens = tokenize(trimmedQuery)
         guard !queryTokens.isEmpty else { return commands }
+        let normalizedQuery = normalize(trimmedQuery)
 
-        return commands.enumerated()
-            .compactMap { index, command -> RankedCommand? in
-                guard let score = score(command, query: trimmedQuery, tokens: queryTokens) else {
+        return indexedCommands
+            .compactMap { indexedCommand -> RankedCommand? in
+                guard let score = score(indexedCommand, normalizedQuery: normalizedQuery, tokens: queryTokens) else {
                     return nil
                 }
 
-                return RankedCommand(command: command, score: score, index: index)
+                return RankedCommand(
+                    command: indexedCommand.command,
+                    score: score,
+                    index: indexedCommand.index
+                )
             }
             .sorted { first, second in
                 if first.score == second.score {
@@ -106,6 +100,15 @@ final class CommandPaletteViewModel {
 
     private var totalResultCount: Int {
         results.count
+    }
+
+    private var bestMatchesTitle: String {
+        switch HasanaLanguage(rawValue: UserDefaults.standard.string(forKey: HasanaSettingsKeys.language) ?? "") ?? .arabic {
+        case .arabic:
+            "أفضل النتائج"
+        case .english:
+            "Best matches"
+        }
     }
 
     func setPresented(_ presented: Bool) {
@@ -170,10 +173,54 @@ final class CommandPaletteViewModel {
 
     func submitPromptIfNeeded() {
         let prompt = trimmedQuery
-        guard !prompt.isEmpty else { return }
+        guard !prompt.isEmpty, let onSubmitPrompt else { return }
 
-        onSubmitPrompt?(prompt)
+        onSubmitPrompt(prompt)
         setPresented(false)
+    }
+
+    private func refreshCommandIndex() {
+        indexedCommands = commands.enumerated().map { index, command in
+            IndexedCommand(
+                command: command,
+                normalizedTitle: normalize(command.title),
+                normalizedSubtitle: normalize(command.subtitle),
+                normalizedCategory: normalize(command.category.rawValue),
+                normalizedKeywords: command.keywords.map(normalize),
+                titleTokens: tokenize(command.title),
+                index: index
+            )
+        }
+    }
+
+    private func rebuildPresentationState() {
+        let ranked = rankedCommands
+        let commandResults = ranked.map(CommandPaletteResult.command)
+
+        if isSearching {
+            results = onSubmitPrompt == nil ? commandResults : commandResults + [.prompt(trimmedQuery)]
+            sections = [
+                CommandPaletteSection(
+                    id: "search-results",
+                    title: ranked.isEmpty ? nil : bestMatchesTitle,
+                    results: results
+                )
+            ]
+        } else {
+            results = commandResults
+            sections = HasanaCommandCategory.displayOrder.compactMap { category in
+                let categoryCommands = commands.filter { $0.category == category }
+                guard !categoryCommands.isEmpty else { return nil }
+
+                return CommandPaletteSection(
+                    id: category.rawValue,
+                    title: category.title,
+                    results: categoryCommands.map(CommandPaletteResult.command)
+                )
+            }
+        }
+
+        clampSelection()
     }
 
     private func clampSelection() {
@@ -187,49 +234,43 @@ final class CommandPaletteViewModel {
         }
     }
 
-    private func score(_ command: HasanaCommand, query: String, tokens: [String]) -> Int? {
-        let normalizedTitle = normalize(command.title)
-        let normalizedSubtitle = normalize(command.subtitle)
-        let normalizedCategory = normalize(command.category.rawValue)
-        let normalizedKeywords = command.keywords.map(normalize)
-        let titleTokens = tokenize(command.title)
-
+    private func score(_ indexedCommand: IndexedCommand, normalizedQuery: String, tokens: [String]) -> Int? {
         var score = 0
 
-        if normalizedTitle == normalize(query) {
+        if indexedCommand.normalizedTitle == normalizedQuery {
             score += 1_000
-        } else if normalizedTitle.hasPrefix(normalize(query)) {
+        } else if indexedCommand.normalizedTitle.hasPrefix(normalizedQuery) {
             score += 500
         }
 
         for token in tokens {
             var tokenScore = 0
 
-            if titleTokens.contains(token) {
+            if indexedCommand.titleTokens.contains(token) {
                 tokenScore = max(tokenScore, 120)
             }
 
-            if titleTokens.contains(where: { $0.hasPrefix(token) }) {
+            if indexedCommand.titleTokens.contains(where: { $0.hasPrefix(token) }) {
                 tokenScore = max(tokenScore, 100)
             }
 
-            if normalizedTitle.contains(token) {
+            if indexedCommand.normalizedTitle.contains(token) {
                 tokenScore = max(tokenScore, 80)
             }
 
-            if normalizedKeywords.contains(token) {
+            if indexedCommand.normalizedKeywords.contains(token) {
                 tokenScore = max(tokenScore, 75)
             }
 
-            if normalizedKeywords.contains(where: { $0.hasPrefix(token) }) {
+            if indexedCommand.normalizedKeywords.contains(where: { $0.hasPrefix(token) }) {
                 tokenScore = max(tokenScore, 65)
             }
 
-            if normalizedCategory.contains(token) {
+            if indexedCommand.normalizedCategory.contains(token) {
                 tokenScore = max(tokenScore, 45)
             }
 
-            if normalizedSubtitle.contains(token) {
+            if indexedCommand.normalizedSubtitle.contains(token) {
                 tokenScore = max(tokenScore, 35)
             }
 
@@ -261,11 +302,22 @@ final class CommandPaletteViewModel {
         let score: Int
         let index: Int
     }
+
+    private struct IndexedCommand {
+        let command: HasanaCommand
+        let normalizedTitle: String
+        let normalizedSubtitle: String
+        let normalizedCategory: String
+        let normalizedKeywords: [String]
+        let titleTokens: [String]
+        let index: Int
+    }
 }
 
 private extension HasanaCommandCategory {
     static let displayOrder: [HasanaCommandCategory] = [
         .canvas,
+        .giving,
         .app
     ]
 }

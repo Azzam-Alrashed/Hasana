@@ -8,7 +8,6 @@ struct HasanaCanvasView: View {
 
     @State private var nodeDragOffsets: [HasanaCanvasNodeID: CGSize] = [:]
     @State private var isDraggingNode = false
-    @State private var nodeFrames: [HasanaCanvasNodeID: NodeFrameData] = [:]
 
     var body: some View {
         GeometryReader { geometry in
@@ -89,9 +88,6 @@ struct HasanaCanvasView: View {
                         persistViewport()
                     }
             )
-            .onPreferenceChange(NodeFramePreferenceKey.self) { value in
-                nodeFrames = value
-            }
             .onChange(of: store.focusRequest) { _, request in
                 guard let request, let position = store.focusNode(for: request.commandID) else { return }
 

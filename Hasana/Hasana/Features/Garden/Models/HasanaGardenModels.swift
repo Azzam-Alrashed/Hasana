@@ -1,0 +1,299 @@
+import CoreGraphics
+import Foundation
+import SwiftUI
+
+enum HasanaGardenPracticeID: String, CaseIterable, Codable, Hashable, Identifiable {
+    case fajr
+    case dhuhr
+    case asr
+    case maghrib
+    case isha
+    case quran
+    case adhkar
+    case witr
+
+    var id: String { rawValue }
+}
+
+enum HasanaGardenWorshipType: String, Codable, Hashable {
+    case prayer
+    case quran
+    case dhikr
+}
+
+enum HasanaGardenReligiousStatus: String, Codable, Hashable {
+    case obligatory
+    case quran
+    case dhikr
+    case sunnah
+
+    func title(for language: HasanaLanguage) -> String {
+        switch (self, language) {
+        case (.obligatory, .arabic):
+            "فرض"
+        case (.obligatory, .english):
+            "Obligatory"
+        case (.quran, .arabic):
+            "قرآن"
+        case (.quran, .english):
+            "Quran"
+        case (.dhikr, .arabic):
+            "ذكر"
+        case (.dhikr, .english):
+            "Dhikr"
+        case (.sunnah, .arabic):
+            "سنة"
+        case (.sunnah, .english):
+            "Sunnah"
+        }
+    }
+}
+
+enum HasanaGardenVisualRole: String, Codable, Hashable {
+    case foundationalTree
+    case plant
+    case flower
+}
+
+enum HasanaGardenGrowthStage: String, Codable, CaseIterable, Hashable {
+    case seed
+    case sprout
+    case young
+    case mature
+    case flowering
+
+    init(totalTendedDays: Int) {
+        switch totalTendedDays {
+        case 0:
+            self = .seed
+        case 1...2:
+            self = .sprout
+        case 3...6:
+            self = .young
+        case 7...13:
+            self = .mature
+        default:
+            self = .flowering
+        }
+    }
+
+    func title(for language: HasanaLanguage) -> String {
+        switch (self, language) {
+        case (.seed, .arabic):
+            "بذرة"
+        case (.seed, .english):
+            "Seed"
+        case (.sprout, .arabic):
+            "برعم"
+        case (.sprout, .english):
+            "Sprout"
+        case (.young, .arabic):
+            "نبتة صغيرة"
+        case (.young, .english):
+            "Young"
+        case (.mature, .arabic):
+            "ناضجة"
+        case (.mature, .english):
+            "Mature"
+        case (.flowering, .arabic):
+            "مزدهرة"
+        case (.flowering, .english):
+            "Flowering"
+        }
+    }
+}
+
+struct HasanaGardenPractice: Identifiable, Codable, Hashable {
+    let id: HasanaGardenPracticeID
+    let worshipType: HasanaGardenWorshipType
+    let religiousStatus: HasanaGardenReligiousStatus
+    let icon: String
+    let visualRole: HasanaGardenVisualRole
+    let defaultPosition: CGPoint
+
+    func title(for language: HasanaLanguage) -> String {
+        switch (id, language) {
+        case (.fajr, .arabic):
+            "الفجر"
+        case (.fajr, .english):
+            "Fajr"
+        case (.dhuhr, .arabic):
+            "الظهر"
+        case (.dhuhr, .english):
+            "Dhuhr"
+        case (.asr, .arabic):
+            "العصر"
+        case (.asr, .english):
+            "Asr"
+        case (.maghrib, .arabic):
+            "المغرب"
+        case (.maghrib, .english):
+            "Maghrib"
+        case (.isha, .arabic):
+            "العشاء"
+        case (.isha, .english):
+            "Isha"
+        case (.quran, .arabic):
+            "ورد القرآن"
+        case (.quran, .english):
+            "Quran"
+        case (.adhkar, .arabic):
+            "أذكار الصباح والمساء"
+        case (.adhkar, .english):
+            "Morning/evening adhkar"
+        case (.witr, .arabic):
+            "الوتر"
+        case (.witr, .english):
+            "Witr"
+        }
+    }
+
+    func subtitle(for language: HasanaLanguage) -> String {
+        switch (id, language) {
+        case (.fajr, .arabic):
+            "بداية اليوم بنور"
+        case (.fajr, .english):
+            "Begin the day with light"
+        case (.dhuhr, .arabic):
+            "وقفة هادئة في منتصف اليوم"
+        case (.dhuhr, .english):
+            "A calm pause at midday"
+        case (.asr, .arabic):
+            "رعاية الثبات بعد الظهر"
+        case (.asr, .english):
+            "Care for steadiness later in the day"
+        case (.maghrib, .arabic):
+            "عودة لطيفة مع غروب الشمس"
+        case (.maghrib, .english):
+            "A gentle return at sunset"
+        case (.isha, .arabic):
+            "خاتمة اليوم بسكينة"
+        case (.isha, .english):
+            "Close the day with stillness"
+        case (.quran, .arabic):
+            "آيات قليلة تكفي لتنمو"
+        case (.quran, .english):
+            "Even a few verses can grow"
+        case (.adhkar, .arabic):
+            "ذكر يحفظ إيقاع القلب"
+        case (.adhkar, .english):
+            "Remembrance for the heart's rhythm"
+        case (.witr, .arabic):
+            "ركعة تختم الليل بلطف"
+        case (.witr, .english):
+            "A gentle closing prayer for the night"
+        }
+    }
+}
+
+struct HasanaGardenProgress: Identifiable, Codable, Equatable {
+    var practiceID: HasanaGardenPracticeID
+    var tendedDayKeys: [String]
+
+    var id: HasanaGardenPracticeID { practiceID }
+    var totalTendedDays: Int { tendedDayKeys.count }
+    var growthStage: HasanaGardenGrowthStage {
+        HasanaGardenGrowthStage(totalTendedDays: totalTendedDays)
+    }
+
+    init(practiceID: HasanaGardenPracticeID, tendedDayKeys: [String] = []) {
+        self.practiceID = practiceID
+        self.tendedDayKeys = Array(Set(tendedDayKeys)).sorted()
+    }
+
+    func isTended(on dayKey: String) -> Bool {
+        tendedDayKeys.contains(dayKey)
+    }
+}
+
+struct HasanaGardenPracticeState: Identifiable, Equatable {
+    let practice: HasanaGardenPractice
+    let progress: HasanaGardenProgress
+    let isTendedToday: Bool
+
+    var id: HasanaGardenPracticeID { practice.id }
+}
+
+struct HasanaGardenDisplayState: Equatable {
+    let practices: [HasanaGardenPracticeState]
+    let tendedTodayCount: Int
+    let totalTendedDays: Int
+}
+
+struct HasanaGardenSnapshot: Codable, Equatable {
+    static let currentSchemaVersion = 1
+
+    var schemaVersion: Int
+    var progress: [HasanaGardenProgress]
+    var viewportOffset: CGSize
+    var viewportScale: CGFloat
+}
+
+extension HasanaGardenPractice {
+    static let defaults: [HasanaGardenPractice] = [
+        HasanaGardenPractice(
+            id: .fajr,
+            worshipType: .prayer,
+            religiousStatus: .obligatory,
+            icon: "sunrise.fill",
+            visualRole: .foundationalTree,
+            defaultPosition: CGPoint(x: -220, y: -120)
+        ),
+        HasanaGardenPractice(
+            id: .dhuhr,
+            worshipType: .prayer,
+            religiousStatus: .obligatory,
+            icon: "sun.max.fill",
+            visualRole: .foundationalTree,
+            defaultPosition: CGPoint(x: 0, y: -150)
+        ),
+        HasanaGardenPractice(
+            id: .asr,
+            worshipType: .prayer,
+            religiousStatus: .obligatory,
+            icon: "sun.haze.fill",
+            visualRole: .foundationalTree,
+            defaultPosition: CGPoint(x: 220, y: -120)
+        ),
+        HasanaGardenPractice(
+            id: .maghrib,
+            worshipType: .prayer,
+            religiousStatus: .obligatory,
+            icon: "sunset.fill",
+            visualRole: .foundationalTree,
+            defaultPosition: CGPoint(x: -120, y: 90)
+        ),
+        HasanaGardenPractice(
+            id: .isha,
+            worshipType: .prayer,
+            religiousStatus: .obligatory,
+            icon: "moon.stars.fill",
+            visualRole: .foundationalTree,
+            defaultPosition: CGPoint(x: 120, y: 90)
+        ),
+        HasanaGardenPractice(
+            id: .quran,
+            worshipType: .quran,
+            religiousStatus: .quran,
+            icon: "book.closed.fill",
+            visualRole: .plant,
+            defaultPosition: CGPoint(x: -300, y: 160)
+        ),
+        HasanaGardenPractice(
+            id: .adhkar,
+            worshipType: .dhikr,
+            religiousStatus: .dhikr,
+            icon: "sparkles",
+            visualRole: .flower,
+            defaultPosition: CGPoint(x: 0, y: 230)
+        ),
+        HasanaGardenPractice(
+            id: .witr,
+            worshipType: .prayer,
+            religiousStatus: .sunnah,
+            icon: "moon.zzz.fill",
+            visualRole: .flower,
+            defaultPosition: CGPoint(x: 300, y: 160)
+        )
+    ]
+}

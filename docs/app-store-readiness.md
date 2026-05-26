@@ -1,0 +1,88 @@
+# Hasana App Store Readiness
+
+Date: 2026-05-26
+Status: In progress
+
+## Current Build
+
+- Scheme: Hasana
+- Bundle ID: `sa.Alrashed.Azzam.Hasana`
+- Display name: `حسنة`
+- Category: Education
+- Version: `0.0.1`
+- Build: `2`
+- Minimum iOS: `18.6`
+- Built with: iOS SDK `26.5`
+- App Store icon: present at `Hasana/Hasana/Resources/Assets.xcassets/AppIcon.appiconset/1024.png`
+
+## Completed In Repo
+
+- Debug and Release builds pass for generic iOS with code signing disabled.
+- Privacy manifest added for app-only `UserDefaults` usage.
+- No tracking domains declared.
+- No collected data types declared for the current local-only MVP.
+- Removed unused location permission copy from generated Info.plist settings.
+- Payment/support screen remains disabled and clearly states no payment is collected.
+- Arabic and English app copy exist across the MVP screens in code.
+
+## App Store Connect Metadata Draft
+
+### App Name
+
+Hasana - حسنة
+
+### Subtitle
+
+A calm garden for daily worship.
+
+### Promotional Text
+
+Tend a private lifelong garden through prayer, Quran, dhikr, and gentle daily return.
+
+### Description
+
+Hasana is a calm daily companion for Muslim professionals who want to return to meaningful worship with privacy and beauty.
+
+Build a lifelong garden by tending small daily practices such as prayer, Quran, adhkar, and Witr. Missing a day does not erase your growth; Hasana is designed around gentle continuity rather than pressure, public scores, or comparison.
+
+The current MVP stores your garden locally on your device, supports Arabic and English, and includes appearance, theme, and app icon settings.
+
+### Keywords
+
+Islam,Muslim,prayer,Quran,dhikr,worship,habits,spirituality,Arabic,reflection
+
+### Review Notes
+
+Hasana currently stores all worship progress locally on device using UserDefaults. The support/donation screen is a disabled placeholder and does not process payments or collect payment information.
+
+## Privacy Answers
+
+- Data collection: none for the current MVP, because worship progress and settings remain local on device.
+- Tracking: no.
+- Third-party SDKs: none currently present in the Xcode project.
+- Sensitive information: worship activity may be sensitive, but it is not transmitted off device in the current MVP.
+- Privacy policy URL: still required in App Store Connect before submission.
+
+## Required Before Submission
+
+- Create and publish a privacy policy URL that matches the local-only data model.
+- Confirm the public launch version with App Store Connect, likely `1.0.0` instead of the current `0.0.1`.
+- Capture one to ten App Store screenshots for required iPhone and iPad sizes.
+- Complete App Store age rating questionnaire.
+- Complete export compliance answers.
+- Run manual QA on at least one small iPhone, one large iPhone, and one iPad in Arabic and English.
+- Review worship labels and religious copy before release.
+
+## Manual QA Checklist
+
+- First launch shows splash, then onboarding.
+- Onboarding language switch updates copy and layout direction.
+- Skip and start both enter the garden and do not show onboarding again.
+- Garden pan and zoom work and persist after relaunch.
+- Tapping each practice opens the log sheet focused on that practice.
+- Tending and untending each practice persists after relaunch.
+- Reset view recenters and persists.
+- Command palette opens logging, support, and settings.
+- Settings language, appearance, theme, and app icon choices persist.
+- Support screen cannot initiate a real payment.
+- Dynamic Type does not clip primary actions on common device sizes.

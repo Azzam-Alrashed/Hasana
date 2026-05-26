@@ -79,6 +79,8 @@ enum HasanaTheme {
         switch category {
         case .canvas:
             accent
+        case .giving:
+            finance
         case .app:
             gold
         }

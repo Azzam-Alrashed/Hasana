@@ -5,7 +5,7 @@ struct DottedBackground: View {
     let scale: CGFloat
 
     var body: some View {
-        Canvas { context, size in
+        Canvas(rendersAsynchronously: true) { context, size in
             let baseSpacing: CGFloat = 28
             let spacing = max(baseSpacing * scale, 8)
             let dotRadius = max(1.15 * min(scale, 1.35), 0.75)
@@ -16,25 +16,25 @@ struct DottedBackground: View {
                 let levelSpacing = spacing * multiplier
                 let startX = originX.truncatingRemainder(dividingBy: levelSpacing) - levelSpacing
                 let startY = originY.truncatingRemainder(dividingBy: levelSpacing) - levelSpacing
+                let radius = dotRadius * radiusMultiplier
+                var dots = Path()
 
                 var x = startX
                 while x < size.width + levelSpacing {
                     var y = startY
                     while y < size.height + levelSpacing {
-                        let rect = CGRect(
-                            x: x - dotRadius * radiusMultiplier,
-                            y: y - dotRadius * radiusMultiplier,
-                            width: dotRadius * radiusMultiplier * 2,
-                            height: dotRadius * radiusMultiplier * 2
-                        )
-                        context.fill(
-                            Path(ellipseIn: rect),
-                            with: .color(HasanaTheme.textPrimary.opacity(alpha))
-                        )
+                        dots.addEllipse(in: CGRect(
+                            x: x - radius,
+                            y: y - radius,
+                            width: radius * 2,
+                            height: radius * 2
+                        ))
                         y += levelSpacing
                     }
                     x += levelSpacing
                 }
+
+                context.fill(dots, with: .color(HasanaTheme.textPrimary.opacity(alpha)))
             }
 
             drawLevel(multiplier: 4, alpha: 0.08, radiusMultiplier: 1.7)
