@@ -1,802 +1,541 @@
-# Hasana Product SRS
+# Hasana Software Requirements Specification
 
 Date: 2026-05-26
-Status: Approved (Comprehensive Features Implemented)
+Status: Approved MVP Build Specification
 Owner: Product
-Related docs:
+Document style: Practical ISO/IEC/IEEE 29148-style SRS
 
-- 2026-05-25-hasana-gamified-garden-requirements-en.md
-- 2026-05-25-hasana-gamified-garden-requirements-ar.md
-- app-store-readiness.md
+Related documents:
 
-## 1. Product Summary
+- `2026-05-25-hasana-gamified-garden-requirements-en.md`
+- `2026-05-25-hasana-gamified-garden-requirements-ar.md`
+- `app-store-readiness.md`
 
-Hasana is a spiritually grounded daily operating system for Muslim professionals. The current product direction centers on a lifelong garden that grows through worship and reflection, with a lightweight donation surface for users who want to support development. The app should help users return to meaningful practices with calmness, beauty, and privacy rather than pressure, public comparison, or noisy scoring.
+References:
 
-The product is a gentle companion for consistency. In addition to the visual garden canvas, the app provides a suite of integrated utility trackers: calculated prayer times with local athan notifications, an electronic Tasbih counter, a Quran Khatm planner and reflection journal, a Sunnah and Sadaqah logger, spiritual analytics, and an Islamic hub containing a Qibla compass, Hijri calendar, Dua library, and customizable spiritual habits.
+- IEEE 830-1998, superseded SRS guidance: https://standards.ieee.org/ieee/830/1222/
+- ISO/IEC/IEEE 29148-2018, current requirements engineering guidance: https://standards.ieee.org/standard/29148-2018.html
 
-## 2. Goals
+## 1. Introduction
 
-### Product Goals
+### 1.1 Purpose
 
-- Help Muslim users build consistency in obligatory worship and selected Sunnah practices.
-- Represent spiritual consistency visually through a personal garden.
-- Make returning after missed days emotionally safe.
-- Support Arabic and English from the start.
-- Keep worship data private by default.
-- Build a foundation for future Islamic seasons, forgotten Sunnahs, social encouragement, and app-support donation workflows.
+This Software Requirements Specification defines the focused MVP for Hasana, a garden-first worship consistency app for young Muslims. It is the source of truth for product scope, functional requirements, non-functional requirements, external interfaces, acceptance criteria, and traceability.
 
-### Non-Goals For MVP
+This document replaces the previous broad product SRS. It intentionally excludes utility-suite scope from the MVP unless the utility directly supports the garden-first experience.
 
-- Public leaderboards or competitive worship ranking.
-- Detailed religious instruction without review.
-- Automatic prayer detection or external verification.
-- Zakat or sadaqah tracking.
-- Full payment processing without explicit provider scope and review.
-- Friend feeds that expose exact worship activity.
-- A broad productivity task manager unrelated to the spiritual garden.
+### 1.2 Product Scope
 
-## 3. Audience And Personas
+Hasana helps young Muslims build consistency with obligatory worship and selected Sunnah practices through a lifelong personal garden. Daily worship practices are represented as plants, flowers, or foundational trees. As users tend practices, the garden becomes richer and more meaningful.
 
-### Primary Persona: Young Muslim Professional
+The MVP shall focus on:
 
-The user wants structure around prayer, Quran, and dhikr, but does not want an app that feels judgmental or childish. They may be busy, inconsistent, and sensitive to shame-based reminders.
+- A lifelong worship garden.
+- Eight core practices: Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Adhkar, and Witr.
+- Simple daily done/undone logging.
+- Gentle growth, dormant, and return states.
+- Arabic and English support.
+- Local privacy-first persistence.
+- A disabled development-support donation placeholder.
+
+### 1.3 Intended Audience
+
+This SRS is intended for:
+
+- Product owners defining MVP scope.
+- Designers creating Hasana's user experience and visual language.
+- Engineers implementing the iOS app.
+- QA reviewers validating acceptance criteria.
+- Religious/content reviewers checking labels and copy for humility and accuracy.
+
+### 1.4 Definitions And Abbreviations
+
+| Term | Definition |
+| --- | --- |
+| SRS | Software Requirements Specification. |
+| MVP | Minimum Viable Product. |
+| RTL | Right-to-left layout direction, primarily for Arabic. |
+| Practice | A worship habit represented in the garden. |
+| Tended | A practice marked complete for a given calendar day. |
+| Untended | A practice not marked complete for a given calendar day. |
+| Dormant state | A gentle visual state that may indicate recent inactivity without erasing accumulated growth. |
+| Growth stage | A visual maturity level derived from accumulated tended days. |
+| Development-support donation | A disabled MVP placeholder explaining how users may support continued app development in the future. |
+
+### 1.5 Requirement ID Conventions
+
+| Prefix | Meaning |
+| --- | --- |
+| `GOAL` | Product goal. |
+| `FR` | Functional requirement. |
+| `UI` | User interface or external interaction requirement. |
+| `DATA` | Data and persistence requirement. |
+| `NFR` | Non-functional requirement. |
+| `AC` | Acceptance criterion. |
+| `FUT` | Future-scope item. |
+
+## 2. Overall Description
+
+### 2.1 Product Perspective
+
+Hasana is a native iOS app centered on a personal spiritual garden. It is not a broad Islamic utility suite, productivity manager, public worship tracker, or social comparison product.
+
+The garden is the primary interface. Supporting surfaces exist only to help the user understand, tend, personalize, or safely support the garden experience.
+
+### 2.2 Product Goals
+
+| ID | Goal |
+| --- | --- |
+| `GOAL-001` | Help young Muslims build consistency with obligatory worship and selected Sunnah practices. |
+| `GOAL-002` | Represent spiritual consistency through a personal lifelong garden. |
+| `GOAL-003` | Make returning after missed days emotionally safe. |
+| `GOAL-004` | Support Arabic and English from the MVP. |
+| `GOAL-005` | Keep worship data private by default. |
+| `GOAL-006` | Use gentle gamification that motivates without turning worship into public scoring or pressure. |
+
+### 2.3 User Classes
+
+#### Primary User: Young Muslim Building Consistency
+
+The primary user wants motivation, structure, and emotional encouragement around worship. They may be inconsistent, may feel sensitive to shame-based reminders, and may respond well to beauty, growth, and gentle progression.
 
 Needs:
 
-- Quick daily check-in.
-- A calm reason to come back.
-- Privacy and emotional safety.
+- A quick daily check-in.
+- A reason to return without guilt.
+- A beautiful and emotionally meaningful sense of progress.
 - Arabic/English flexibility.
-- Beautiful progress that does not feel like worship is being reduced to points.
+- Privacy and control over worship data.
 
-### Secondary Persona: Spiritually Curious Returner
+#### Secondary User: Spiritually Curious Returner
 
-The user wants to restart after a difficult season. They need low-friction logging, forgiving progress, and reminders that encourage continuation rather than perfection.
-
-Needs:
-
-- Easy restart.
-- Clear next action.
-- Gentle copy.
-- No destructive failure states.
-
-### Future Persona: Social Encourager
-
-The user wants to support friends or family with duas, encouragement, or symbolic gifts while respecting privacy.
+The secondary user wants to restart after a difficult season. They need low-friction logging, gentle language, and non-destructive progress behavior.
 
 Needs:
 
-- Explicit consent before sharing.
-- No visibility into exact worship details by default.
-- Lightweight supportive interactions.
+- Simple restart paths.
+- No harsh failure states.
+- Reassuring return copy.
+- Progress that is preserved after missed days.
 
-## 4. Product Principles
+### 2.4 Operating Environment
 
-- Worship first, game second: visual rewards should honor worship, not trivialize it.
-- Gentle continuity: missing a day should not erase meaning.
-- Privacy by default: worship details belong to the user.
-- Beauty over numbers: the garden should communicate progress before dashboards do.
-- Bilingual from the foundation: Arabic and English should be first-class product surfaces.
-- Religious humility: disputed or guidance-heavy content requires review before launch.
+| ID | Requirement |
+| --- | --- |
+| `ENV-001` | The MVP shall run as a native iOS app. |
+| `ENV-002` | The MVP shall store worship progress locally on device. |
+| `ENV-003` | The MVP shall not require account creation, cloud sync, or network access for core worship logging. |
+| `ENV-004` | The MVP shall use platform-supported iOS capabilities for settings, appearance, localization, and optional alternate app icons where available. |
 
-## 5. Current Product Surface
+### 2.5 Design And Implementation Constraints
 
-The current app implementation suggests the following surfaces:
+| ID | Constraint |
+| --- | --- |
+| `CON-001` | Worship details shall remain private by default. |
+| `CON-002` | Public leaderboards, competitive worship ranking, and friend feeds exposing exact worship activity are excluded from MVP. |
+| `CON-003` | Missing a day shall not erase or reduce accumulated growth. |
+| `CON-004` | MVP logging shall remain simple done/undone per practice per day. |
+| `CON-005` | The donation surface shall not process real transactions in MVP. |
+| `CON-006` | Religious guidance-heavy content shall require review before release. |
 
-- Garden canvas: a pan/zoom visual garden with plants for practices.
-- Worship logging sheet: users can tend today's practices.
-- Command palette: users can navigate to settings, payments, and all trackers (Tasbih, Quran, Sunnah, Analytics, Prayer Times, Islamic Hub).
-- Floating command button: quick access to common actions and command palette.
-- Payments view: donation surface for supporting Hasana development (placeholder mode).
-- Settings view: language, appearance, theme, and app icon choices.
-- Onboarding view: intro pages with language switching and garden-centered framing.
-- Prayer Times Dashboard: prayer calculation details, timer countdown, and Notification settings.
-- Tasbih Counter: electronic counter with haptic taps, limits, and preset/custom adhkar.
-- Quran Tracker: Khatm goal setting, daily logged pages, and a reflection journal.
-- Sunnah & Sadaqah Tracker: checklist for daily Sunnah Rawatib prayers, Witr, and voluntary charity (Sadaqah).
-- Spiritual Analytics: visual charts, activity breakdown, and historical logs.
-- Islamic Hub: hub containing Qibla Compass, categorized Duas (Hisn al-Muslim), Hijri calendar, and customizable habits.
+### 2.6 Assumptions And Dependencies
 
-## 6. MVP Scope
+| ID | Assumption |
+| --- | --- |
+| `ASM-001` | The initial app is built for iOS. |
+| `ASM-002` | Local persistence is sufficient for MVP. |
+| `ASM-003` | The eight core practices are fixed for MVP. |
+| `ASM-004` | Existing utility modules may remain in the codebase, but they are not MVP requirements unless included in this SRS. |
+| `ASM-005` | Arabic and English copy will be reviewed for tone, clarity, and fit before release. |
 
-### Included
+## 3. External Interface Requirements
 
-- First-run onboarding.
-- Bilingual Arabic/English app copy.
-- Lifelong garden canvas with practice representations.
-- Practice catalog containing five daily prayers, Quran, adhkar, and Witr.
-- Daily tend/untend logging for each practice.
-- Growth stages based on accumulated tended days.
-- Persistent garden progress and viewport state.
-- Settings for language, appearance, theme, and app icon.
-- Donation surface for supporting Hasana development.
-- Command palette and floating action entry points.
-- Offline Prayer Times Engine & Dashboard (athan calculation methods, settings, and local scheduled alarms).
-- Tasbih electronic counter with customizable items.
-- Quran Tracker with Khatm progression and tadabbur journal.
-- Sunnah tracker (Rawatib, Witr) and Sadaqah tracker.
-- Spiritual Analytics showing consistency charts.
-- Islamic Hub (Qibla Compass with CoreLocation, categorized Duas, Hijri Calendar, and spiritual habits).
+### 3.1 User Interface Requirements
 
-### Excluded Until Later
+| ID | Requirement |
+| --- | --- |
+| `UI-001` | The garden shall be the main screen after onboarding. |
+| `UI-002` | The garden shall visually represent each MVP practice as a plant, flower, or foundational tree. |
+| `UI-003` | The app shall provide an onboarding flow explaining the garden metaphor and core value. |
+| `UI-004` | The app shall provide a logging surface for tending and untending today's practices. |
+| `UI-005` | The app shall provide settings for language, appearance, theme, and app icon where supported. |
+| `UI-006` | The app shall provide a disabled development-support donation placeholder. |
+| `UI-007` | The app shall use warm, youth-friendly, spiritually gentle copy. |
+| `UI-008` | The app shall avoid shame-based language, public comparison language, and harsh failure-state copy. |
+| `UI-009` | The app shall allow users to recover from garden navigation changes through a reset view action. |
+| `UI-010` | The app shall make tended status visible without relying on color alone. |
 
-- Server sync and account creation (stored locally).
-- Full payment processing (SDK payments).
-- Friend interactions (social sharing and comparisons).
-- Forgotten Sunnah discovery system.
-- Islamic seasonal campaigns.
+### 3.2 Localization And Layout Interfaces
 
-## 7. Functional Requirements
+| ID | Requirement |
+| --- | --- |
+| `UI-011` | The MVP shall support Arabic and English user-facing copy. |
+| `UI-012` | Arabic screens shall use RTL layout where natural for text and controls. |
+| `UI-013` | The garden canvas may preserve a stable left-to-right coordinate space to avoid changing plant positions when language changes. |
+| `UI-014` | Core controls shall not clip primary Arabic or English text on common supported iPhone sizes. |
 
-### FR-1 Onboarding
+### 3.3 Software Interfaces
 
-Priority: P0
+| ID | Requirement |
+| --- | --- |
+| `DATA-001` | The app shall persist MVP progress locally using on-device storage. |
+| `DATA-002` | The app shall persist app settings locally. |
+| `DATA-003` | The app shall not depend on a backend service for MVP garden logging. |
+| `DATA-004` | The app shall not transmit exact worship activity to third parties in MVP. |
 
-Requirements:
+### 3.4 Hardware And Platform Interfaces
 
-- The app shall show onboarding to first-time users.
-- The onboarding shall explain the garden metaphor and core value in a calm, concise way.
-- The user shall be able to switch language during onboarding.
-- The user shall be able to skip onboarding.
-- The user shall be able to complete onboarding and enter the main garden.
+| ID | Requirement |
+| --- | --- |
+| `UI-015` | The app may use standard iOS haptics for completion feedback if available. |
+| `UI-016` | The app may use iOS alternate icon APIs where supported. |
+| `UI-017` | If a platform capability is unavailable, the app shall fail gracefully with non-blocking feedback. |
 
-Acceptance criteria:
+### 3.5 Payment Placeholder Interface
 
-- Given a new user, when they open the app, they see onboarding before the main garden.
-- Given onboarding is visible, when the user changes language, page copy and layout direction update.
-- Given the user taps skip or start, onboarding does not block access to the garden.
+| ID | Requirement |
+| --- | --- |
+| `UI-018` | The development-support donation surface shall clearly state that payments are not live. |
+| `UI-019` | The development-support donation surface shall prevent accidental real payment initiation. |
+| `UI-020` | The development-support donation surface shall not present zakat or sadaqah as payment categories. |
 
-#### Implementation Status & Mapping
+## 4. System Features And Functional Requirements
 
-- **Status**: Fully Implemented.
-- **Controller/Gate**: [SplashGateView](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/SplashView.swift) - Gatekeeper checks `@AppStorage(HasanaSettingsKeys.hasCompletedOnboarding)` to decide between showing onboarding or the main view.
-- **View**: [HasanaOnboardingView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Onboarding/HasanaOnboardingView.swift) - Provides a three-page bilingual swipeable interface with language segment switching and a skip option.
+### 4.1 First-Run Onboarding
 
----
-
-### FR-2 Garden Canvas
-
-Priority: P0
-
-Requirements:
-
-- The app shall render a lifelong garden as the main screen.
-- The garden shall show each configured practice as a plant, flower, or foundational tree.
-- The garden shall support pan and zoom.
-- The app shall persist viewport offset and zoom.
-- Selecting a practice shall open logging for that practice.
+| ID | Requirement |
+| --- | --- |
+| `FR-001` | The app shall show onboarding to first-time users before opening the garden. |
+| `FR-002` | Onboarding shall explain that daily worship practices grow a lifelong garden. |
+| `FR-003` | The user shall be able to switch between Arabic and English during onboarding. |
+| `FR-004` | The user shall be able to skip or complete onboarding and enter the garden. |
+| `FR-005` | The app shall remember that onboarding has been completed or skipped. |
 
 Acceptance criteria:
 
-- Given saved viewport state, when the app opens, the garden restores the saved offset and scale.
-- Given a visible practice, when the user taps it, the logging sheet opens with that practice selected.
-- Given the user pans or zooms, when they return later, the adjusted view is preserved.
+| ID | Criteria |
+| --- | --- |
+| `AC-001` | Given a first-time user, when the app launches, then onboarding appears before the garden. |
+| `AC-002` | Given onboarding is visible, when the user changes language, then onboarding copy updates to the selected language. |
+| `AC-003` | Given the user skips or completes onboarding, when they relaunch the app, then onboarding does not block access to the garden. |
 
-#### Implementation Status & Mapping
+### 4.2 Lifelong Garden Canvas
 
-- **Status**: Fully Implemented.
-- **Main View**: [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift) - Integrates the background grid, ground shape, sun, and interactive plants.
-- **Grid Background**: [DottedBackground.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Canvas/Views/Components/DottedBackground.swift) - Renders a coordinate dotted pattern.
-- **State & Gesture Control**: [ViewportState.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Canvas/State/ViewportState.swift) - Manages scale clamping (`0.1` to `2.0`), panning drag translation, and double-pan gestures.
-- **Persistence**: Saved inside [HasanaGardenStore.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/State/HasanaGardenStore.swift) via `UserDefaults` with key `hasana.garden.snapshot.v1`.
-
----
-
-### FR-3 Practice Catalog
-
-Priority: P0
-
-Requirements:
-
-- The app shall include the five daily prayers: Fajr, Dhuhr, Asr, Maghrib, and Isha.
-- The app shall include Quran, morning/evening adhkar, and Witr.
-- Each practice shall have a worship type, religious status, icon, visual role, title, subtitle, and default garden position.
-- Practice names and subtitles shall support Arabic and English.
+| ID | Requirement |
+| --- | --- |
+| `FR-006` | The app shall render the lifelong garden as the primary post-onboarding screen. |
+| `FR-007` | The garden shall show each MVP practice as a distinct visual element. |
+| `FR-008` | The garden shall support panning and zooming. |
+| `FR-009` | The garden shall persist viewport offset and zoom. |
+| `FR-010` | Selecting a practice in the garden shall open logging for that practice. |
+| `FR-011` | The app shall provide a reset view action that returns the garden to its default viewport. |
 
 Acceptance criteria:
 
-- Given the app is in English, all practice names and subtitles render in English.
-- Given the app is in Arabic, all practice names and subtitles render in Arabic with RTL layout where applicable.
-- Given the catalog changes in code, the garden and logging sheet both reflect the same practice list.
+| ID | Criteria |
+| --- | --- |
+| `AC-004` | Given the garden is open, when the user pans or zooms, then the viewport changes smoothly. |
+| `AC-005` | Given a saved viewport, when the user returns to the garden, then the saved offset and zoom are restored. |
+| `AC-006` | Given a visible practice, when the user taps it, then the logging surface opens for that practice. |
+| `AC-007` | Given the user triggers reset view, then the garden returns to the default viewport. |
 
-#### Implementation Status & Mapping
+### 4.3 MVP Practice Catalog
 
-- **Status**: Fully Implemented.
-- **Model**: `HasanaGardenPractice` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift) - Defines fields for IDs, type, religious status, SF Symbol icons, visual roles, default positions, and bilingual text mapping.
-- **Catalog Source of Truth**: `HasanaGardenPractice.defaults` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift#L250) - Populates the 8 default practices (Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Adhkar, Witr) with distinct canvas offsets.
-
----
-
-### FR-4 Daily Worship Logging
-
-Priority: P0
-
-Requirements:
-
-- The user shall be able to mark a practice as tended for today.
-- The user shall be able to untend a practice for today if tapped by mistake.
-- The logging state shall be saved locally.
-- The garden shall visually indicate which practices were tended today.
-- The logging sheet shall show each practice, its status, growth stage, and today's logging state.
+| ID | Requirement |
+| --- | --- |
+| `FR-012` | The MVP catalog shall include Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Adhkar, and Witr. |
+| `FR-013` | Each practice shall have a stable identifier. |
+| `FR-014` | Each practice shall have a worship type. |
+| `FR-015` | Each practice shall have a religious status label using neutral terminology. |
+| `FR-016` | Each practice shall have Arabic and English names. |
+| `FR-017` | Each practice shall have Arabic and English short descriptive copy. |
+| `FR-018` | Each practice shall have a default garden position and visual role. |
 
 Acceptance criteria:
 
-- Given a practice is not tended today, when the user taps "Tend today", it becomes tended.
-- Given a practice is tended today, when the user taps it again, today's tended state is removed.
-- Given a practice is tended today, the garden displays a visual confirmation on that plant.
-- Given the app is restarted, logged progress remains available.
+| ID | Criteria |
+| --- | --- |
+| `AC-008` | Given the app is in English, when the practice catalog is shown, then all MVP practice names and short descriptions appear in English. |
+| `AC-009` | Given the app is in Arabic, when the practice catalog is shown, then all MVP practice names and short descriptions appear in Arabic. |
+| `AC-010` | Given the catalog is loaded, then the garden and logging surface expose the same eight MVP practices. |
 
-#### Implementation Status & Mapping
+### 4.4 Daily Worship Logging
 
-- **Status**: Fully Implemented.
-- **Sheet View**: [HasanaGardenLogSheet.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenLogSheet.swift) - Implements a unified sheet with a 7-day retrospective horizontal picker and detail cards for each practice.
-- **Store & Core Logic**: [HasanaGardenStore.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/State/HasanaGardenStore.swift) - Controls toggling today (`toggleToday(for:)`), fetching day keys in `YYYY-MM-DD` format, and caching progress snapshots.
-- **Visual Feedback**: [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift) - Displays checkmark badges on the plant and shows a blue water droplet animation overlay when the plant is watered/tended.
-
----
-
-### FR-5 Growth Stages
-
-Priority: P0
-
-Requirements:
-
-- The app shall calculate growth stage from total tended days.
-- Growth stages shall include seed, sprout, young, mature, and flowering.
-- Growth stages shall affect visual representation.
-- Missing a day shall not reset total growth.
+| ID | Requirement |
+| --- | --- |
+| `FR-019` | The user shall be able to mark each MVP practice as tended for the current calendar day. |
+| `FR-020` | The user shall be able to untend a practice for the current calendar day if marked by mistake. |
+| `FR-021` | Logging shall be binary: tended or untended. |
+| `FR-022` | MVP logging shall not require late, qada, partial, skipped, or explanatory states. |
+| `FR-023` | The app shall save daily logging state locally. |
+| `FR-024` | The garden shall visually indicate practices tended today. |
+| `FR-025` | The logging surface shall show the practice, current daily state, and growth stage. |
 
 Acceptance criteria:
 
-- Given a practice has zero tended days, it appears as seed.
-- Given a practice has repeated tended days, it advances through the configured growth stages.
-- Given the user misses a day, prior accumulated growth remains intact.
+| ID | Criteria |
+| --- | --- |
+| `AC-011` | Given a practice is untended today, when the user marks it tended, then today's state becomes tended. |
+| `AC-012` | Given a practice is tended today, when the user untends it, then today's tended state is removed. |
+| `AC-013` | Given a practice is tended today, when the user returns to the garden, then the plant shows today's tended state. |
+| `AC-014` | Given the app restarts, when the user returns to logging, then previously saved daily state remains available. |
 
-#### Implementation Status & Mapping
+### 4.5 Growth, Dormancy, And Gentle Return
 
-- **Status**: Fully Implemented.
-- **Calculation**: `HasanaGardenGrowthStage` in [HasanaGardenModels.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Models/HasanaGardenModels.swift#L63) - Maps cumulative counts to stages: `0` days = Seed, `1-2` = Sprout, `3-6` = Young, `7-13` = Mature, `14+` = Flowering.
-- **Visual Rendering**: `HasanaGardenPlantIllustration` in [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift#L291) - Draws custom vectors (stem thickness, leaf counts, petal formations) depending on the stage and visual roles (tree vs leafy plant vs flower).
-
----
-
-### FR-6 Command Palette
-
-Priority: P1
-
-Requirements:
-
-- The app shall provide a command palette for fast navigation and actions.
-- The command palette shall include reset view, log worship, support donations, and settings.
-- Commands shall be searchable by English and Arabic keywords.
-- Executing a command shall perform the intended app action.
+| ID | Requirement |
+| --- | --- |
+| `FR-026` | The app shall calculate growth stage from accumulated tended days. |
+| `FR-027` | Growth stages shall include seed, sprout, young, mature, and flowering. |
+| `FR-028` | Growth stage shall affect the practice's visual representation in the garden. |
+| `FR-029` | Missing a day shall not reset accumulated tended days. |
+| `FR-030` | Missing a day shall not reduce or erase a plant's earned growth stage. |
+| `FR-031` | The app may show a gentle dormant state after missed days. |
+| `FR-032` | Dormant state copy and visuals shall encourage return without shame or punishment. |
 
 Acceptance criteria:
 
-- Given the command palette is open, when the user selects reset view, the garden returns to center at default zoom.
-- Given the user selects log worship, the worship logging sheet opens.
-- Given the user selects support donations or settings, the correct sheet opens.
+| ID | Criteria |
+| --- | --- |
+| `AC-015` | Given a practice has zero tended days, then it appears in the seed stage. |
+| `AC-016` | Given a practice accumulates tended days, then it advances through growth stages. |
+| `AC-017` | Given the user misses a day, then the plant's accumulated growth remains intact. |
+| `AC-018` | Given a plant is dormant, when the user tends the practice again, then the app presents return as care and continuation. |
 
-#### Implementation Status & Mapping
+### 4.6 Gentle Gamification
 
-- **Status**: Fully Implemented.
-- **Overlay View**: [CommandPaletteView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/CommandPalette/CommandPaletteView.swift) - A glassmorphic overlay triggered as a sheet layer. Supporting keyboard arrows, Esc keys, and search filters.
-- **ViewModel**: [CommandPaletteViewModel.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/CommandPalette/CommandPaletteViewModel.swift) - Handles tokenized, diacritic-insensitive command search scoring in both Arabic and English.
-- **Commands**: Defined in [HasanaCommand.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Core/Models/HasanaCommand.swift) with IDs (`.resetView`, `.logWorship`, `.openPayments`, `.openSettings`) and localized keywords.
-
----
-
-### FR-7 Floating Action Entry
-
-Priority: P1
-
-Requirements:
-
-- The app shall provide an always-available floating entry point for common actions.
-- The primary action shall open the command palette.
-- Quick actions shall support logging a good deed, setting intention, and reflection paths.
-- MVP may route intention and reflection to the command palette until dedicated flows exist.
+| ID | Requirement |
+| --- | --- |
+| `FR-033` | The primary reward shall be visual garden beauty and emotional attachment. |
+| `FR-034` | Private counts or streak-like signals may be used only as secondary motivation. |
+| `FR-035` | Collection and discovery mechanics may be introduced only when they preserve spiritual gentleness. |
+| `FR-036` | The MVP shall not include public worship scores, leaderboards, or competitive ranking. |
+| `FR-037` | The app shall avoid destructive streak loss language. |
 
 Acceptance criteria:
 
-- Given the user is on the garden, when they tap the floating command button, command actions become reachable.
-- Given the user selects log good deed, the worship logging flow opens.
+| ID | Criteria |
+| --- | --- |
+| `AC-019` | Given the user completes practices, then garden visuals provide the primary progress feedback. |
+| `AC-020` | Given gamified feedback is shown, then it remains private and secondary to the garden. |
+| `AC-021` | Given a missed day occurs, then the app avoids shame-based streak loss messaging. |
 
-#### Implementation Status & Mapping
+### 4.7 Settings And Personalization
 
-- **Status**: Fully Implemented.
-- **View**: [FloatingCommandButton.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/FloatingCommand/FloatingCommandButton.swift) - A floating icon that sprouts three secondary bubbles via long press or drag:
-  - **Log Good Deed**: Opens the logging sheet with no pre-selected practice.
-  - **Set Intention**: Pre-fills the command palette query with "Settings" / "الإعدادات".
-  - **Reflect**: Pre-fills the command palette query with "Log" / "تسجيل".
-- **Container integration**: Attached to the main canvas in [RootView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/RootView.swift#L31).
-
----
-
-### FR-8 Development Support Donations
-
-Priority: P2
-
-Requirements:
-
-- The app shall include a development-support donations area.
-- The area shall present donations as a way to support continued Hasana development.
-- The area shall not present zakat or sadaqah as tracked payment categories.
-- The area shall communicate that donations support app development.
-- MVP shall not process real payments unless payment provider integration is explicitly scoped and reviewed.
+| ID | Requirement |
+| --- | --- |
+| `FR-038` | The user shall be able to change language between Arabic and English. |
+| `FR-039` | The user shall be able to choose appearance mode where supported. |
+| `FR-040` | The user shall be able to choose an app theme. |
+| `FR-041` | The user shall be able to choose an alternate app icon where supported. |
+| `FR-042` | Settings choices shall persist locally. |
 
 Acceptance criteria:
 
-- Given the user opens payments, they see a donation option for supporting Hasana development.
-- Given the user opens payments, they do not see zakat or sadaqah categories.
-- Given payments are placeholder-only, no user should be able to accidentally initiate a real transaction.
+| ID | Criteria |
+| --- | --- |
+| `AC-022` | Given the user changes language, then visible MVP app copy updates to the selected language. |
+| `AC-023` | Given the user changes theme or appearance, then visible MVP surfaces update consistently. |
+| `AC-024` | Given the user changes app icon on a supported device, then the system icon updates or a graceful non-blocking error appears. |
+| `AC-025` | Given the app restarts, then saved settings remain applied. |
 
-#### Implementation Status & Mapping
+### 4.8 Development-Support Donation Placeholder
 
-- **Status**: Placeholder Implemented (Disabled by design).
-- **View**: [HasanaPaymentsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Payments/Views/HasanaPaymentsView.swift) - Shows development donation packages (SAR 10, 25, 50) and what development areas they support.
-- **Safety**: The main CTA button is explicitly disabled (`.disabled(true)`, `.opacity(0.72)`) and shows notice copy stating that payments are not live and no transaction will occur.
-
----
-
-### FR-9 Settings
-
-Priority: P0
-
-Requirements:
-
-- The app shall allow users to change language between Arabic and English.
-- The app shall allow users to choose appearance mode.
-- The app shall allow users to choose theme.
-- The app shall allow users to choose alternate app icons where platform support allows.
-- Settings choices shall persist.
+| ID | Requirement |
+| --- | --- |
+| `FR-043` | The app shall include a development-support donation surface in MVP. |
+| `FR-044` | The donation surface shall explain that support is for continued Hasana development. |
+| `FR-045` | The donation surface shall clearly state that payments are not live in MVP. |
+| `FR-046` | The donation surface shall prevent initiating real transactions. |
+| `FR-047` | The donation surface shall not describe donations as zakat or sadaqah tracking. |
 
 Acceptance criteria:
 
-- Given the user changes language, app copy updates.
-- Given the user changes appearance or theme, visible UI updates.
-- Given the user changes app icon, the system icon changes or an actionable error is shown.
+| ID | Criteria |
+| --- | --- |
+| `AC-026` | Given the user opens the support surface, then they see development-support messaging. |
+| `AC-027` | Given payments are not live, then no action can initiate a real transaction. |
+| `AC-028` | Given the support surface is visible, then it does not present zakat or sadaqah as payment categories. |
 
-#### Implementation Status & Mapping
+## 5. Data Requirements
 
-- **Status**: Fully Implemented.
-- **View**: [HasanaSettingsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Settings/HasanaSettingsView.swift) - Includes segmented controls for Language and Mode, a grid picker for themes (Garden, Sunrise, Ocean, Lavender), and a grid picker for 8 alternative app icons.
-- **Model & Persistence**: [HasanaAppSettings.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Core/Settings/HasanaAppSettings.swift) - Uses `@Observable` to bind settings, caching selection in `UserDefaults` and handling alternate icon application via `UIApplication.shared.setAlternateIconName`.
+| ID | Requirement |
+| --- | --- |
+| `DATA-005` | The app shall store a local practice catalog for the eight MVP practices. |
+| `DATA-006` | The app shall store daily logging state by practice identifier and calendar day. |
+| `DATA-007` | The app shall store accumulated tended-day history sufficient to calculate growth stages. |
+| `DATA-008` | The app shall store whether onboarding has been completed or skipped. |
+| `DATA-009` | The app shall store language, appearance, theme, and app icon settings locally. |
+| `DATA-010` | The app shall store garden viewport offset and zoom locally. |
+| `DATA-011` | The app shall handle missing or corrupt local data by falling back to safe defaults. |
+| `DATA-012` | The MVP shall not store account credentials because accounts are out of scope. |
+| `DATA-013` | The MVP shall not store payment credentials because live payments are out of scope. |
 
----
+## 6. Non-Functional Requirements
 
-### FR-10 Localization And Layout
+### 6.1 Privacy And Security
 
-Priority: P0
+| ID | Requirement |
+| --- | --- |
+| `NFR-001` | Worship progress shall be private by default. |
+| `NFR-002` | Exact worship activity shall not be shared externally in MVP. |
+| `NFR-003` | Any future sync or social feature shall require explicit user consent before sharing worship-related data. |
+| `NFR-004` | The MVP shall not require account creation. |
 
-Requirements:
+### 6.2 Reliability
 
-- Arabic and English shall be supported across MVP screens.
-- Arabic surfaces shall use RTL layout where natural.
-- The garden canvas may preserve left-to-right world coordinates for spatial consistency.
-- User-facing strings shall avoid guilt, shame, or public comparison.
+| ID | Requirement |
+| --- | --- |
+| `NFR-005` | Local progress shall survive app restart. |
+| `NFR-006` | Daily logging shall be idempotent for each practice and calendar day. |
+| `NFR-007` | The app shall recover gracefully from missing stored data. |
+| `NFR-008` | The app shall preserve accumulated growth after missed days. |
 
-Acceptance criteria:
+### 6.3 Usability And Accessibility
 
-- Given Arabic is selected, navigation titles, buttons, command copy, practice copy, donation/support copy, and settings copy are Arabic.
-- Given English is selected, the same surfaces are English.
-- Given the app is in Arabic, text should not clip in core controls.
+| ID | Requirement |
+| --- | --- |
+| `NFR-009` | MVP workflows shall be usable without account setup. |
+| `NFR-010` | Core interactive elements shall have clear accessible labels. |
+| `NFR-011` | Core buttons and tappable surfaces shall follow standard iOS tap target expectations. |
+| `NFR-012` | Text shall support dynamic type where practical. |
+| `NFR-013` | Tended state shall use more than color alone. |
 
-#### Implementation Status & Mapping
+### 6.4 Performance
 
-- **Status**: Fully Implemented.
-- **Language Configurations**: Binds localization using `.environment(\.layoutDirection)` and `.environment(\.locale)` in [RootView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/App/RootView.swift#L67-L68).
-- **Coordinate Space Lock**: Preserves panning coordinates by explicitly locking layout direction to `.leftToRight` on the scrolling canvas inside [HasanaGardenView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenView.swift#L108) and on the gestures container of [FloatingCommandButton.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/FloatingCommand/FloatingCommandButton.swift#L48).
+| ID | Requirement |
+| --- | --- |
+| `NFR-014` | Garden panning and zooming shall feel responsive on supported devices. |
+| `NFR-015` | Opening MVP sheets and settings shall occur without noticeable blocking caused by persistence operations. |
+| `NFR-016` | Local data reads and writes shall not cause visible garden scroll or gesture stutter. |
 
----
+### 6.5 Religious Content And Tone
 
-### FR-11 Prayer Times & Athan Alerts
+| ID | Requirement |
+| --- | --- |
+| `NFR-017` | Religious labels shall use neutral terminology for MVP. |
+| `NFR-018` | The app shall avoid giving detailed religious rulings without review. |
+| `NFR-019` | User-facing copy shall encourage return, care, and consistency without guilt. |
+| `NFR-020` | Copy shall be warm, youth-friendly, respectful, and not childish. |
 
-Priority: P0
+## 7. MVP User Flows
 
-Requirements:
-- The app shall calculate Islamic prayer times offline using latitude, longitude, timezone offset, calculation method, and school settings.
-- The app shall support multiple standard calculation methods (Umm Al-Qura, Muslim World League, ISNA, Egypt, Gulf, Karachi, etc.).
-- The app shall support Hanafi and Shafi'i/default schools for Asr prayer calculation.
-- The app shall display today's prayer times (Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha) and show a countdown timer to the next prayer.
-- The app shall allow scheduling local notification alarms (silent or athan sound) for each of the five prayers.
-
-Acceptance criteria:
-- Given location and calculation method, when the app loads, the calculated times match standard astronomical formulas.
-- Given the next prayer time, the app renders a ticking countdown timer.
-- Given active notification settings, the system schedules local notifications with sound or silent reminders.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **Engine**: [PrayerTimesEngine.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Engine/PrayerTimesEngine.swift) - Astronomical calculations for offline prayer times using spherical trigonometry.
-- **View**: [PrayerTimesDashboardView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Views/PrayerTimesDashboardView.swift) - Localized Arabic/English dashboard with location inputs, method picker, toggle switches for notification sounds, and current time indicators.
-- **Notification Services**: [NotificationManager.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/PrayerTimes/Services/NotificationManager.swift) - Standard SwiftUI wrapper requesting user authorization and scheduling local notifications via `UNUserNotificationCenter`.
-
----
-
-### FR-12 Tasbih Counter
-
-Priority: P1
-
-Requirements:
-- The app shall provide an electronic Tasbih counter interface.
-- The Tasbih counter shall register taps, play haptic feedback, and trigger success effects upon reaching counts of 33, 99, 100, or custom limits.
-- The app shall include preset adhkar (Subhan Allah, Al-Hamdulillah, Allahu Akbar, etc.) and allow users to add custom adhkar with title and target limit.
-- Completing a tasbih session shall allow the user to water the garden's Adhkar plant directly.
-
-Acceptance criteria:
-- Given a target limit, when the user reaches it, a completion animation, sounds, and distinct haptic trigger.
-- Given the user logs the session, the Adhkar plant in the garden updates to today's watered state.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **View**: [HasanaTasbihView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Tasbih/Views/HasanaTasbihView.swift) - Provides a circular touch surface, haptic counter logging, sound settings, and custom dhikr creators.
-
----
-
-### FR-13 Quran Tracker & Journal
-
-Priority: P1
-
-Requirements:
-- The app shall provide a Quran reading and Khatm tracker.
-- The user shall be able to set a Khatm goal (e.g. number of days, starting page).
-- The user shall be able to log daily reading pages or juz, showing progress toward their target.
-- The user shall be able to write reflection or tadabbur notes associated with logged sessions.
-- Saving daily Quran reading progress shall water the garden's Quran plant.
-
-Acceptance criteria:
-- Given a Khatm target, the app calculates and shows the remaining pages needed per day.
-- Given a logged reading session, the Quran plant is updated to today's tended state on the canvas.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **View**: [QuranJournalView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/QuranJournal/Views/QuranJournalView.swift) - Circular progress chart, target calculator, reading log inputs, and a list of historical reflection notes.
-
----
-
-### FR-14 Sunnah & Sadaqah Tracker
-
-Priority: P1
-
-Requirements:
-- The app shall support logging Sunnah Rawatib prayers (12 daily Sunnah rak'ahs: 2 before Fajr, 4 before Dhuhr, 2 after Dhuhr, 2 after Maghrib, 2 after Isha).
-- The app shall track whether the user prayed Witr.
-- The app shall provide a checkbox to log daily voluntary charity (Sadaqah).
-- Logging Witr prayer shall water the garden's Witr plant.
-
-Acceptance criteria:
-- Given the Sunnah logger, when the user logs 12 rak'ahs, they see a visual achievement.
-- Given Witr is toggled, the Witr plant in the garden canvas updates to watered/tended.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **View**: [SunnahTrackerView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/SunnahTracker/Views/SunnahTrackerView.swift) - Segmented checklist for Rawatib, a toggle for Witr, a checkbox for Sadaqah, and a 7-day calendar check-in list.
-
----
-
-### FR-15 Spiritual Analytics
-
-Priority: P1
-
-Requirements:
-- The app shall aggregate local logs and show weekly and monthly compliance views.
-- The app shall calculate a worship consistency score per practice.
-- The analytics shall present data in privacy-preserving bar charts and consistency grids.
-- The user shall be able to edit historical logs directly from the calendar list.
-
-Acceptance criteria:
-- Given a history of checked practices, the dashboard correctly computes the consistency rate.
-- Given the user changes a past day's checked status, the consistency metrics update.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **View**: [SpiritualAnalyticsView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Analytics/Views/SpiritualAnalyticsView.swift) - Interactive grids, vertical bar graphs, and localized Arabic/English activity cards.
-
----
-
-### FR-16 Islamic Hub (Qibla, Dua, Hijri Calendar, Habits)
-
-Priority: P1
-
-Requirements:
-- The app shall provide a central Islamic Hub dashboard containing spiritual utilities.
-- The hub shall include a Qibla compass using device CoreLocation coordinates and CoreMotion heading sensors.
-- The hub shall include a Dua Library containing categorized duas from Hisn al-Muslim.
-- The hub shall display a Hijri calendar.
-- The hub shall let users track customizable spiritual habits.
-
-Acceptance criteria:
-- Given location permission and hardware heading support, the Qibla compass displays the angle to Kaaba and rotates dynamically.
-- Given the Dua library, the user can search and filter prayers.
-
-#### Implementation Status & Mapping
-- **Status**: Fully Implemented.
-- **Main View**: [IslamicHubView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/IslamicHub/Views/IslamicHubView.swift) - A dashboard organizing and launching the sub-features.
-- **Qibla Service & Compass**: [QiblaManager.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Qibla/Services/QiblaManager.swift) and [QiblaCompassView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Qibla/Views/QiblaCompassView.swift) - GPS calculation of bearing to Mecca and CoreLocation compass heading tracking.
-- **Dua View**: [DuaLibraryView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/DuaLibrary/Views/DuaLibraryView.swift) - Complete categorized list of supplications with search.
-- **Hijri View**: [HijriCalendarView.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/HijriCalendar/Views/HijriCalendarView.swift) - A month grid rendering Islamic calendar dates.
-- **Habits View**: Uses dynamic habit settings stored in SwiftUI model state.
-
----
-
-## 8. Non-Functional Requirements
-
-### Privacy
-
-- Worship progress shall be stored locally for MVP using `UserDefaults`.
-- Exact worship activity shall not be shared.
-- Future sync or social features shall require explicit user consent.
-
-### Reliability
-
-- Local progress survives app restart via UserDefaults synchronization.
-- Logging is idempotent per practice per day key.
-- Corrupt or missing stored data fails gracefully by falling back to the default practice catalog.
-
-### Accessibility
-
-- Interactive elements have clear programmatic titles.
-- Text sizes use system fonts that support dynamic scaling.
-- Tended status is indicated by checkmarks, water drops, and size scales rather than color alone.
-- Buttons meet standard iOS tap target dimensions.
-
-### Performance
-
-- The garden viewport uses a hardware-accelerated pan-zoom implementation and lightweight canvas grid.
-- Opening sheets and navigation views occurs with minimal UI transition lag.
-- Persistence is handled off the main thread where necessary to prevent scroll stutter.
-
-### Religious Review
-
-- Classification tags (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr) use neutral terminologies.
-- Descriptive copy focuses on gentle spiritual reminders without establishing arbitrary rules or rulings.
-
-## 9. User Flows
-
-### Flow 1: First Run
+### 7.1 First Run
 
 1. User opens Hasana.
 2. App shows onboarding.
-3. User selects Arabic or English if desired.
-4. User swipes through the pages or skips.
-5. User taps start.
-6. App opens the garden.
+3. User optionally switches language.
+4. User skips or completes onboarding.
+5. App opens the garden.
 
-Success outcome: the user understands that daily practices grow a lifelong garden and can begin without setup friction.
+Success outcome: the user understands that worship practices grow a lifelong garden and can begin without setup friction.
 
-### Flow 2: Tend A Practice From Garden
+### 7.2 Tend A Practice From The Garden
 
 1. User opens the garden.
 2. User taps a visible plant, flower, or tree.
-3. App opens the logging sheet scrolled to that practice.
-4. User taps the card to tend today's practice.
-5. App marks it as tended, updates growth state if needed, and shows completion feedback.
-6. User taps done and returns to the garden.
+3. App opens logging for that practice.
+4. User marks the practice tended for today.
+5. App saves the state locally.
+6. Garden immediately reflects today's tended state.
 
-Success outcome: the garden reflects today's action immediately.
+Success outcome: the user can tend a practice quickly and see meaningful visual feedback.
 
-### Flow 3: Tend Multiple Practices
+### 7.3 Tend Multiple Practices
 
-1. User opens the floating command button or taps "Log Worship" in the command palette.
-2. App opens the logging sheet.
-3. User marks multiple practices as tended.
-4. App saves each change locally.
-5. User closes the sheet.
+1. User opens the logging surface.
+2. User marks one or more practices as tended.
+3. App saves each change locally.
+4. User closes logging.
+5. Garden reflects all practices tended today.
 
-Success outcome: all selected practices show today's tended state in the garden.
+Success outcome: the user can complete daily worship logging with minimal friction.
 
-### Flow 4: Reset Garden View
+### 7.4 Return After Missed Days
 
-1. User opens the command palette.
-2. User searches for or selects reset view.
-3. App returns the garden to default center and scale.
-4. App persists the reset viewport.
+1. User opens Hasana after one or more missed days.
+2. Garden preserves accumulated growth.
+3. Plants may appear gently dormant.
+4. User tends a practice.
+5. App frames the action as return and care.
 
-Success outcome: the user can recover from getting lost while panning or zooming.
+Success outcome: the user feels invited back, not punished.
 
-### Flow 5: Change Language
+### 7.5 Change Language
 
 1. User opens settings.
 2. User selects Arabic or English.
-3. App updates copy, locale, and layout direction.
-4. User closes settings.
+3. App updates copy, locale, and natural layout direction.
+4. Garden plant positions remain spatially stable.
 
-Success outcome: the app remains usable and coherent in the selected language.
+Success outcome: the selected language is applied without breaking the garden experience.
 
-### Flow 6: Support Development
+### 7.6 Support Development Placeholder
 
-1. User opens command palette.
-2. User selects support/donations.
-3. App displays a donation surface for supporting Hasana development.
-4. User can review the support message and donation call to action.
+1. User opens the support/donation surface.
+2. App displays development-support messaging.
+3. App states payments are not live.
+4. User cannot initiate a real transaction.
 
-Success outcome: the user understands donations support continued app development without accidentally making a payment.
+Success outcome: the user understands the support concept without payment risk.
 
-## 10. Prioritization
+## 8. Future Scope
 
-### P0: MVP Must-Haves
+The following items are intentionally outside the focused MVP and shall not be treated as MVP requirements.
 
-- First-run onboarding.
-- Garden as main screen.
-- Practice catalog for prayers, Quran, adhkar, and Witr.
-- Daily tend/untend logging.
-- Growth stages and visual completion feedback.
-- Local persistence for progress and viewport.
-- Arabic/English support.
-- Settings for language and appearance.
-- Gentle, privacy-first copy.
+| ID | Future Item |
+| --- | --- |
+| `FUT-001` | Prayer times dashboard and athan alerts. |
+| `FUT-002` | Tasbih counter as a dedicated module. |
+| `FUT-003` | Quran Khatm planner and reflection journal as a dedicated module. |
+| `FUT-004` | Sunnah Rawatib and Sadaqah tracker beyond the MVP Witr practice. |
+| `FUT-005` | Spiritual analytics dashboards and consistency scoring. |
+| `FUT-006` | Islamic Hub with Qibla, Dua Library, Hijri Calendar, and custom habits. |
+| `FUT-007` | Islamic seasons such as Ramadan, Fridays, and Dhul Hijjah. |
+| `FUT-008` | Forgotten Sunnah discovery and rare hidden plants. |
+| `FUT-009` | Friend interactions, duas, symbolic gifts, and social encouragement. |
+| `FUT-010` | Account creation, private sync, backup, or multi-device support. |
+| `FUT-011` | Live payment provider integration. |
+| `FUT-012` | Detailed religious instruction, rulings, or expanded content libraries requiring formal review. |
 
-### P1: Near-Term Differentiators
+## 9. Verification And Acceptance Summary
 
-- Command palette polish and search quality.
-- Floating quick actions with clearer destinations.
-- Richer garden states and motion.
-- Practice detail/reflection sheet.
-- Better empty, missed-day, and return states.
-- Accessibility pass.
+MVP acceptance requires:
 
-### P2: Product Expansion
+- Every `FR` in sections 4.1 through 4.8 passes its linked acceptance criteria.
+- Arabic and English MVP flows pass manual QA.
+- Worship progress persists locally across restart.
+- Missed days do not erase accumulated growth.
+- Dormant states, if present, remain gentle and non-punitive.
+- No MVP screen exposes private worship activity externally.
+- The donation surface cannot initiate real payment.
+- Utility-suite features listed in future scope are not required for MVP release.
 
-- Islamic seasons such as Ramadan, Fridays, and Dhul Hijjah.
-- Forgotten Sunnah discovery.
-- Giving planning beyond placeholder rows.
-- Prayer time awareness.
-- Optional reminders.
-- Local backup or private sync.
+## 10. Traceability Matrix
 
-### P3: Later Bets
-
-- Friends and encouragement layer.
-- Symbolic seeds or dua gifts.
-- Community campaigns without exposing private worship.
-- Advanced personalization.
-- Payment provider integration.
+| Goal | Requirement IDs | Acceptance Criteria |
+| --- | --- | --- |
+| `GOAL-001` Build worship consistency | `FR-012` to `FR-025`, `DATA-005` to `DATA-007` | `AC-008` to `AC-014` |
+| `GOAL-002` Represent consistency through a lifelong garden | `FR-006` to `FR-011`, `FR-026` to `FR-028`, `UI-001`, `UI-002` | `AC-004` to `AC-007`, `AC-015`, `AC-016` |
+| `GOAL-003` Make returning emotionally safe | `FR-029` to `FR-032`, `FR-037`, `NFR-008`, `NFR-019` | `AC-017`, `AC-018`, `AC-021` |
+| `GOAL-004` Support Arabic and English | `FR-003`, `FR-016`, `FR-017`, `FR-038`, `UI-011` to `UI-014` | `AC-002`, `AC-008`, `AC-009`, `AC-022` |
+| `GOAL-005` Keep worship data private | `DATA-001` to `DATA-004`, `DATA-012`, `NFR-001` to `NFR-004` | `AC-014`, verification summary privacy checks |
+| `GOAL-006` Use gentle gamification | `FR-033` to `FR-037`, `NFR-017` to `NFR-020` | `AC-019` to `AC-021` |
+| Development support placeholder | `FR-043` to `FR-047`, `UI-018` to `UI-020`, `DATA-013` | `AC-026` to `AC-028` |
+| MVP personalization | `FR-038` to `FR-042`, `DATA-008` to `DATA-010`, `UI-005`, `UI-016`, `UI-017` | `AC-022` to `AC-025` |
 
 ## 11. Release Readiness Checklist
 
-- All P0 flows pass manual QA in Arabic and English.
-- Logging persists across app restart.
-- No P0 screen has clipped primary text on common iPhone sizes.
-- The app does not expose private worship data.
-- Payment surfaces cannot initiate real transactions unless intentionally integrated.
-- Religious content has been reviewed or is clearly limited to neutral product labels.
-- App icon switching handles unsupported states gracefully.
-- Onboarding can be completed and does not reappear unexpectedly after completion.
+- Onboarding appears only for first-time users or users who have not completed/skipped it.
+- Garden is the primary post-onboarding screen.
+- All eight MVP practices appear consistently in garden and logging.
+- Daily tended/untended state works for each MVP practice.
+- Growth stages advance from accumulated tended days.
+- Missed days never erase earned growth.
+- Dormant state, if implemented, is gentle and reversible.
+- Arabic and English MVP copy are complete.
+- Arabic layout does not clip primary controls on supported iPhone sizes.
+- Worship data remains local and private.
+- Settings persist across app restart.
+- Donation placeholder is visibly disabled and cannot process payment.
+- Non-MVP utility modules are not required for MVP acceptance.
 
-## 12. Metrics
-
-MVP metrics should be private and product-health oriented rather than spiritually judgmental.
-
-Recommended:
-
-- Onboarding completion rate.
-- Day 1, day 7, and day 30 return rate.
-- Number of days with at least one tended practice.
-- Percentage of users who change language or theme.
-- Frequency of command palette use.
-- Crash-free sessions.
-
-Avoid:
-
-- Public worship score.
-- Friend comparisons of completed worship.
-- Shame-oriented streak loss metrics.
-
-## 13. Open Questions & Resolutions
-
-### Logging Shareability
-
-*Q: Should obligatory prayers and Sunnah practices share the same logging interaction?*
-
-- **Resolution**: Yes. To minimize friction, all practices are logged using cards inside the unified [HasanaGardenLogSheet.swift](file:///Users/azzam-dev/Hasana/Hasana/Hasana/Features/Garden/Views/HasanaGardenLogSheet.swift). They are distinguished visually by color coding and status tags (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr).
-
----
-
-### Practice Visibility
-
-*Q: Should a user be able to hide practices that do not fit their current focus?*
-
-- **Resolution**: In MVP, all 8 core practices are shown on the canvas by default to keep coordinate offset mapping simple. Hiding/filtering configurations are deferred to post-MVP development.
-
----
-
-### Worship Nuances
-
-*Q: How should the app handle qada, late prayer, or partial completion without overcomplicating MVP?*
-
-- **Resolution**: Logging is kept strictly binary ("tended" or "untended" for a given calendar day). This guarantees emotional safety and minimizes pressure, avoiding granular tracking of delays or missed timings.
-
----
-
-### Religious Context
-
-*Q: Which religious authority or review process will approve worship classifications and guidance copy?*
-
-- **Resolution**: The MVP bypasses complex rulings by adopting neutral, standard descriptors (Obligatory, Sunnah, Sunnah/Wajib, Quran, Dhikr) and focusing on descriptive descriptions (e.g. "A calm pause at midday" for Dhuhr) rather than doctrinal instructions.
-
----
-
-### Prayer Times Integration
-
-*Q: Should prayer times be integrated before reminders are introduced?*
-
-- **Resolution**: Yes. Offline calculations via `PrayerTimesEngine` and daily local scheduled alerts via `NotificationManager` are implemented, enabling a localized dashboard, countdown to the next prayer, and custom notifications.
-
----
-
-### Donations Architecture
-
-*Q: What payment provider, confirmation flow, and disclosure copy are appropriate if development-support donations become real transactions?*
-
-- **Resolution**: Payment provider SDKs are excluded. The donation screen is a disabled, descriptive placeholder.
-
----
-
-### Social Architecture
-
-*Q: How much social functionality can exist without creating comparison pressure?*
-
-- **Resolution**: Social elements are excluded from the MVP. Progress is stored local-only, guaranteeing absolute privacy by default.
-
----
-
-### Growth Mechanics
-
-*Q: Should growth stages be purely cumulative or also reflect recent consistency?*
-
-- **Resolution**: Growth is purely cumulative (calculated from total tended dates) to reinforce the principle of gentle continuity. Missing a day does not reduce a plant's size or reset its growth stage.
-
----
-
-### Forgotten Sunnah Discovery
-
-*Q: Should forgotten Sunnahs be unlocked by time, learning, seasonal prompts, or user readiness?*
-
-- **Resolution**: The catalog includes Sunnah practices (Witr, Quran, Adhkar) visible to all users from day one, while dynamic unlocking systems are deferred.
-
-## 14. Risks And Mitigations
-
-### Risk: Worship Feels Transactional
-
-Mitigation:
-
-- Avoid points-first UI.
-- Keep copy centered on intention, return, and care.
-- Use beauty and reflection as rewards rather than competitive scoring.
-
-### Risk: Religious Content Is Incorrect Or Too Broad
-
-Mitigation:
-
-- Mark religious guidance as needing review.
-- Keep MVP labels simple.
-- Build content systems that can support reviewed sources later.
-
-### Risk: Users Feel Shame After Missing Days
-
-Mitigation:
-
-- Preserve growth after missed days.
-- Add return states that welcome the user back.
-- Avoid destructive streak reset language.
-
-### Risk: Privacy Expectations Are Violated
-
-Mitigation:
-
-- Store locally in MVP.
-- Make sharing opt-in only.
-- Do not introduce friend visibility until privacy controls are designed.
-
-## 15. Future Product Docs To Add
-
-- Religious review policy and content governance.
-- Worship catalog taxonomy.
-- Garden growth balancing spec.
-- Islamic seasons spec.
-- Forgotten Sunnahs discovery spec.
-- Development-support donations product spec.
-- Privacy and social sharing spec.
-- QA test plan for bilingual SwiftUI screens.
