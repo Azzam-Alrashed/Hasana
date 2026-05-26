@@ -331,12 +331,7 @@ final class HasanaAppSettings {
         }
     }
 
-    var appIcon: HasanaAppIcon {
-        didSet {
-            UserDefaults.shared.set(appIcon.rawValue, forKey: HasanaSettingsKeys.appIcon)
-            applyAppIcon(appIcon)
-        }
-    }
+    private(set) var appIcon: HasanaAppIcon
 
     /// Prayer settings — consolidated here from the old ad-hoc RootView handling.
     var prayerSettings: PrayerSettings {
@@ -376,25 +371,42 @@ final class HasanaAppSettings {
         appearance.colorScheme
     }
 
-    // MARK: - Private Helpers
+    var supportsAlternateAppIcons: Bool {
+        UIApplication.shared.supportsAlternateIcons
+    }
 
-    private func applyAppIcon(_ icon: HasanaAppIcon) {
-        guard UIApplication.shared.supportsAlternateIcons else {
-            appIconErrorMessage = iconUnsupportedMessage
+    func selectAppIcon(_ icon: HasanaAppIcon) {
+        guard icon != appIcon else {
+            appIconErrorMessage = nil
             return
         }
 
-        guard UIApplication.shared.alternateIconName != icon.alternateIconName else {
-            appIconErrorMessage = nil
+        guard supportsAlternateAppIcons else {
+            if icon == .primary {
+                appIcon = .primary
+                UserDefaults.shared.set(icon.rawValue, forKey: HasanaSettingsKeys.appIcon)
+                appIconErrorMessage = nil
+                return
+            }
+
+            appIconErrorMessage = iconUnsupportedMessage
             return
         }
 
         UIApplication.shared.setAlternateIconName(icon.alternateIconName) { [weak self] error in
             DispatchQueue.main.async {
-                self?.appIconErrorMessage = error?.localizedDescription
+                if let error {
+                    self?.appIconErrorMessage = error.localizedDescription
+                } else {
+                    self?.appIcon = icon
+                    UserDefaults.shared.set(icon.rawValue, forKey: HasanaSettingsKeys.appIcon)
+                    self?.appIconErrorMessage = nil
+                }
             }
         }
     }
+
+    // MARK: - Private Helpers
 
     private var iconUnsupportedMessage: String {
         switch language {

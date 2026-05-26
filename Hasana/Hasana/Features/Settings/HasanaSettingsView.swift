@@ -72,12 +72,15 @@ struct HasanaSettingsView: View {
                             spacing: 10
                         ) {
                             ForEach(HasanaAppIcon.allCases) { appIcon in
+                                let isEnabled = settings.supportsAlternateAppIcons || appIcon == .primary
+
                                 AppIconChoiceButton(
                                     appIcon: appIcon,
                                     language: settings.language,
-                                    isSelected: settings.appIcon == appIcon
+                                    isSelected: settings.appIcon == appIcon,
+                                    isEnabled: isEnabled
                                 ) {
-                                    settings.appIcon = appIcon
+                                    settings.selectAppIcon(appIcon)
                                 }
                             }
                         }
@@ -200,6 +203,7 @@ private struct AppIconChoiceButton: View {
     let appIcon: HasanaAppIcon
     let language: HasanaLanguage
     let isSelected: Bool
+    let isEnabled: Bool
     let action: () -> Void
 
     var body: some View {
@@ -228,6 +232,10 @@ private struct AppIconChoiceButton: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(HasanaTheme.accent)
+                } else if !isEnabled {
+                    Image(systemName: "minus.circle")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(HasanaTheme.textMuted)
                 }
             }
             .padding(10)
@@ -240,6 +248,8 @@ private struct AppIconChoiceButton: View {
             }
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.58)
     }
 }
 

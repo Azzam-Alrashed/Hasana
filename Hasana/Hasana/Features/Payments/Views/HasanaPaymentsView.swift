@@ -90,7 +90,7 @@ private struct DonationHeroCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
-                DonationTrustPill(title: copy.secure, icon: "lock.fill")
+                DonationTrustPill(title: copy.paymentsOff, icon: "pause.circle.fill")
                 DonationTrustPill(title: copy.developmentLabel, icon: "hammer.fill")
             }
         }
@@ -240,7 +240,7 @@ private struct DonationCallToAction: View {
             Button {
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "heart.fill")
+                    Image(systemName: "pause.circle.fill")
                         .font(.system(size: 14, weight: .bold))
 
                     Text(copy.buttonTitle)
@@ -317,36 +317,36 @@ private struct PaymentsCopy {
     var heroEyebrow: String {
         switch language {
         case .arabic:
-            "تبرع اختياري"
+            "معاينة فقط"
         case .english:
-            "Optional donation"
+            "Preview only"
         }
     }
 
     var heroTitle: String {
         switch language {
         case .arabic:
-            "ساعدنا على بناء حديقة أهدأ وأجمل"
+            "مدفوعات دعم التطوير غير مفعلة"
         case .english:
-            "Help us build a calmer, better garden"
+            "Development-support payments are not live"
         }
     }
 
     var heroSubtitle: String {
         switch language {
         case .arabic:
-            "دعمك يذهب لتطوير حسنة وتحسين التجربة، من جمال الحديقة إلى جودة المزايا واستقرار التطبيق."
+            "هذه شاشة تعريفية فقط لما قد يدعم تطوير حسنة لاحقا. لا توجد عملية دفع، ولا يتم تحصيل أي مبلغ من هنا."
         case .english:
-            "Your support goes into developing Hasana, from garden polish to better features and a more reliable app."
+            "This is only a preview of how future support may help Hasana development. There is no checkout and no money is collected here."
         }
     }
 
-    var secure: String {
+    var paymentsOff: String {
         switch language {
         case .arabic:
-            "آمن"
+            "الدفع متوقف"
         case .english:
-            "Secure"
+            "Payments off"
         }
     }
 
@@ -362,9 +362,9 @@ private struct PaymentsCopy {
     var amountTitle: String {
         switch language {
         case .arabic:
-            "اختر مساهمة"
+            "معاينة مبلغ محتمل"
         case .english:
-            "Choose a contribution"
+            "Preview a possible contribution"
         }
     }
 
@@ -406,9 +406,9 @@ private struct PaymentsCopy {
     func readySubtitle(amount: String) -> String {
         switch language {
         case .arabic:
-            "\(amount) عند تفعيل الدفع"
+            "\(amount) للعرض فقط، وليس للدفع"
         case .english:
-            "\(amount) when donations open"
+            "\(amount) for preview only, not payment"
         }
     }
 
@@ -424,18 +424,18 @@ private struct PaymentsCopy {
     var buttonTitle: String {
         switch language {
         case .arabic:
-            "الدفع غير مفعل بعد"
+            "لا يمكن بدء الدفع"
         case .english:
-            "Donations are not live yet"
+            "Payment cannot be started"
         }
     }
 
     var noPaymentNotice: String {
         switch language {
         case .arabic:
-            "لن يتم تحصيل أي مبلغ من هذه الشاشة الآن."
+            "الزر معطل عمدا، ولا توجد StoreKit أو بوابة دفع أو اتصال خلفي في هذه النسخة."
         case .english:
-            "No payment will be collected from this screen right now."
+            "This button is intentionally disabled. This MVP has no StoreKit, payment gateway, or backend checkout."
         }
     }
 
