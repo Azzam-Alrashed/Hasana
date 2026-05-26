@@ -41,8 +41,8 @@ struct HasanaGardenView: View {
                     totalTendedDays: displayState.totalTendedDays,
                     language: language
                 )
-                .padding(.top, 18)
-                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.horizontal, 16)
 
                 Spacer()
 
@@ -50,13 +50,12 @@ struct HasanaGardenView: View {
                     HasanaGardenStateLegend(language: language)
                     HasanaGardenHint(language: language)
                 }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 22)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
             .allowsHitTesting(false)
             .environment(\.layoutDirection, language.layoutDirection)
         }
-        .ignoresSafeArea()
     }
 
     private func triggerGardenTapHaptic() {
@@ -98,21 +97,29 @@ private struct HasanaGardenA11yOverlay: View {
                 }
             }
         }
+        .environment(\.layoutDirection, .leftToRight)
     }
 
     private func accessibilityLabel(for state: HasanaGardenPracticeState) -> String {
         let name = state.practice.title(for: language)
         let status = state.practice.religiousStatus.title(for: language)
         let stage = state.progress.growthStage.title(for: language)
+        
         let tendedState: String
         if state.isTendedToday {
             tendedState = language == .arabic ? "تم اليوم" : "Tended today"
-        } else if state.isDormant {
-            tendedState = language == .arabic ? "في سكون لطيف" : "Resting gently"
         } else {
             tendedState = language == .arabic ? "لم يتم اليوم" : "Not tended today"
         }
-        return "\(name), \(status), \(stage), \(tendedState)"
+        
+        let restingState: String
+        if state.isDormant {
+            restingState = language == .arabic ? "، سكون لطيف" : ", Resting gently"
+        } else {
+            restingState = ""
+        }
+        
+        return "\(name), \(status), \(stage), \(tendedState)\(restingState)"
     }
 
     private func isTendedHint(for state: HasanaGardenPracticeState) -> String {
@@ -261,6 +268,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         context.coordinator.updateCamera()
     }
 
+    @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var cameraState: HasanaGardenCameraState
         var onPracticeSelected: (HasanaGardenPracticeID) -> Void
@@ -275,12 +283,21 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         private var pinchStartDistance: Float = 0
         private var lastCameraRevision = -1
 
+        private var displayLink: CADisplayLink?
+        private var panVelocity: CGPoint = .zero
+        private var zoomVelocity: Float = 0
+        private var lastStepTime: CFTimeInterval = 0
+
         init(
             cameraState: HasanaGardenCameraState,
             onPracticeSelected: @escaping (HasanaGardenPracticeID) -> Void
         ) {
             self.cameraState = cameraState
             self.onPracticeSelected = onPracticeSelected
+        }
+
+        deinit {
+            displayLink?.invalidate()
         }
 
         func configure(_ arView: ARView) {
@@ -343,29 +360,37 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             guard let arView else { return }
 
             let location = recognizer.location(in: arView)
-            guard let hit = arView.hitTest(location).first,
-                  let practiceID = practiceID(from: hit.entity) else {
-                return
+            let hits = arView.hitTest(location)
+            for hit in hits {
+                if let practiceID = practiceID(from: hit.entity) {
+                    onPracticeSelected(practiceID)
+                    return
+                }
             }
-
-            onPracticeSelected(practiceID)
         }
 
         @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            let translation = recognizer.translation(in: recognizer.view)
-
             switch recognizer.state {
             case .began:
+                stopDeceleration()
                 panStartYaw = cameraState.yaw
                 panStartPitch = cameraState.pitch
             case .changed:
+                let translation = recognizer.translation(in: recognizer.view)
                 cameraState.update(
                     yaw: panStartYaw - Float(translation.x) * 0.006,
                     pitch: panStartPitch - Float(translation.y) * 0.004
                 )
                 updateCamera()
             case .ended, .cancelled, .failed:
-                cameraState.save()
+                let velocity = recognizer.velocity(in: recognizer.view)
+                panVelocity = CGPoint(
+                    x: CGFloat(-velocity.x * 0.006),
+                    y: CGFloat(-velocity.y * 0.004)
+                )
+                panVelocity.x = max(min(panVelocity.x, 10.0), -10.0)
+                panVelocity.y = max(min(panVelocity.y, 10.0), -10.0)
+                startDeceleration()
             default:
                 break
             }
@@ -374,14 +399,82 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
             case .began:
+                stopDeceleration()
                 pinchStartDistance = cameraState.distance
             case .changed:
-                cameraState.update(distance: pinchStartDistance / Float(recognizer.scale))
+                let targetDistance = pinchStartDistance / Float(recognizer.scale)
+                cameraState.update(distance: targetDistance)
                 updateCamera()
             case .ended, .cancelled, .failed:
-                cameraState.save()
+                let currentScale = Float(recognizer.scale) > 0 ? Float(recognizer.scale) : 1.0
+                zoomVelocity = -Float(pinchStartDistance) / (currentScale * currentScale) * Float(recognizer.velocity)
+                zoomVelocity = max(min(zoomVelocity, 15.0), -15.0)
+                startDeceleration()
             default:
                 break
+            }
+        }
+
+        private func startDeceleration() {
+            guard displayLink == nil else { return }
+            lastStepTime = CACurrentMediaTime()
+            let link = CADisplayLink(target: self, selector: #selector(stepDeceleration(_:)))
+            link.add(to: .main, forMode: .common)
+            displayLink = link
+        }
+
+        private func stopDeceleration() {
+            displayLink?.invalidate()
+            displayLink = nil
+            panVelocity = .zero
+            zoomVelocity = 0
+        }
+
+        @objc private func stepDeceleration(_ link: CADisplayLink) {
+            let currentTime = CACurrentMediaTime()
+            let dt = Float(currentTime - lastStepTime)
+            lastStepTime = currentTime
+            
+            let cappedDt = min(max(dt, 0.001), 0.1)
+            var didUpdate = false
+            
+            let panSpeedSq = panVelocity.x * panVelocity.x + panVelocity.y * panVelocity.y
+            if panSpeedSq > 0.0001 {
+                let decay = CGFloat(pow(0.05, Double(cappedDt)))
+                let deltaYaw = Float(panVelocity.x) * cappedDt
+                let deltaPitch = Float(panVelocity.y) * cappedDt
+                
+                cameraState.update(
+                    yaw: cameraState.yaw + deltaYaw,
+                    pitch: cameraState.pitch + deltaPitch
+                )
+                
+                panVelocity.x *= decay
+                panVelocity.y *= decay
+                didUpdate = true
+            } else {
+                panVelocity = .zero
+            }
+            
+            if abs(zoomVelocity) > 0.01 {
+                let decay = Float(pow(0.05, Double(cappedDt)))
+                let deltaDistance = zoomVelocity * cappedDt
+                
+                cameraState.update(distance: cameraState.distance + deltaDistance)
+                
+                zoomVelocity *= decay
+                didUpdate = true
+            } else {
+                zoomVelocity = 0
+            }
+            
+            if didUpdate {
+                updateCamera()
+            }
+            
+            if panVelocity == .zero && zoomVelocity == 0 {
+                stopDeceleration()
+                cameraState.save()
             }
         }
 
@@ -395,27 +488,86 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         private func makeEnvironment() -> Entity {
             let root = Entity()
 
-            let ground = ModelEntity(
-                mesh: .generateBox(width: 6.5, height: 0.12, depth: 4.35),
-                materials: [material(UIColor(HasanaTheme.accentSoft.opacity(0.8)), roughness: 0.9)]
+            // 1. Soil base layer
+            let soilColor = UIColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1.0)
+            let soil = ModelEntity(
+                mesh: .generateBox(width: 6.5, height: 0.08, depth: 4.35),
+                materials: [material(soilColor, roughness: 0.95)]
             )
-            ground.position = [0, -0.06, 0]
-            root.addChild(ground)
+            soil.position = [0, -0.04, 0]
+            root.addChild(soil)
 
-            let path = ModelEntity(
-                mesh: .generateBox(width: 5.55, height: 0.025, depth: 0.16),
-                materials: [material(UIColor(HasanaTheme.goldSoft.opacity(0.8)), roughness: 0.95)]
+            // 2. Grass lawn layer
+            let grassColor = UIColor(red: 0.32, green: 0.58, blue: 0.38, alpha: 1.0)
+            let lawn = ModelEntity(
+                mesh: .generateBox(width: 6.42, height: 0.08, depth: 4.27),
+                materials: [material(grassColor, roughness: 0.9)]
             )
-            path.position = [0, 0.02, 0.18]
-            root.addChild(path)
+            lawn.position = [0, 0.04, 0]
+            root.addChild(lawn)
 
-            let crossPath = ModelEntity(
-                mesh: .generateBox(width: 0.16, height: 0.026, depth: 3.35),
-                materials: [material(UIColor(HasanaTheme.goldSoft.opacity(0.58)), roughness: 0.95)]
-            )
-            crossPath.position = [0.25, 0.025, 0]
-            root.addChild(crossPath)
+            // 3. Wooden Garden Retaining Border Frame
+            let woodColor = UIColor(red: 0.42, green: 0.30, blue: 0.22, alpha: 1.0)
+            let woodMaterial = material(woodColor, roughness: 0.7)
 
+            // Back border
+            let backBorder = ModelEntity(mesh: .generateBox(width: 6.58, height: 0.18, depth: 0.08), materials: [woodMaterial])
+            backBorder.position = [0, 0.01, -2.175 - 0.04]
+            root.addChild(backBorder)
+
+            // Front border
+            let frontBorder = ModelEntity(mesh: .generateBox(width: 6.58, height: 0.18, depth: 0.08), materials: [woodMaterial])
+            frontBorder.position = [0, 0.01, 2.175 + 0.04]
+            root.addChild(frontBorder)
+
+            // Left border
+            let leftBorder = ModelEntity(mesh: .generateBox(width: 0.08, height: 0.18, depth: 4.35), materials: [woodMaterial])
+            leftBorder.position = [-3.25 - 0.04, 0.01, 0]
+            root.addChild(leftBorder)
+
+            // Right border
+            let rightBorder = ModelEntity(mesh: .generateBox(width: 0.08, height: 0.18, depth: 4.35), materials: [woodMaterial])
+            rightBorder.position = [3.25 + 0.04, 0.01, 0]
+            root.addChild(rightBorder)
+
+            // 4. Stepping Stones Path
+            let stoneColor = UIColor(red: 0.88, green: 0.86, blue: 0.82, alpha: 1.0)
+            let stoneMat = material(stoneColor, roughness: 0.85)
+
+            // Horizontal stepping stones along z = 0.18
+            let startX: Float = -2.7
+            let endX: Float = 2.7
+            let stepX: Float = 0.45
+            var currentX = startX
+            while currentX <= endX {
+                let distanceToIntersection = abs(currentX - 0.25)
+                if distanceToIntersection > 0.1 {
+                    let stone = ModelEntity(
+                        mesh: .generateBox(width: 0.24, height: 0.012, depth: 0.24),
+                        materials: [stoneMat]
+                    )
+                    stone.position = [currentX, 0.081, 0.18]
+                    root.addChild(stone)
+                }
+                currentX += stepX
+            }
+
+            // Cross path stepping stones along x = 0.25 (going front to back)
+            let startZ: Float = -1.8
+            let endZ: Float = 1.8
+            let stepZ: Float = 0.45
+            var currentZ = startZ
+            while currentZ <= endZ {
+                let stone = ModelEntity(
+                    mesh: .generateBox(width: 0.24, height: 0.013, depth: 0.24),
+                    materials: [stoneMat]
+                )
+                stone.position = [0.25, 0.081, currentZ]
+                root.addChild(stone)
+                currentZ += stepZ
+            }
+
+            // 5. Lighting and Sun
             let sun = ModelEntity(
                 mesh: .generateSphere(radius: 0.28),
                 materials: [material(UIColor(HasanaTheme.gold.opacity(0.92)), roughness: 0.25)]
@@ -423,15 +575,23 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             sun.position = [2.55, 2.15, -1.5]
             root.addChild(sun)
 
+            // Primary directional light (warm afternoon sun) casting soft shadows
             let light = DirectionalLight()
-            light.light.intensity = 2200
-            light.orientation = simd_quatf(angle: -.pi / 4, axis: [1, 0, 0])
+            light.light.intensity = 2600
+            light.light.color = UIColor(red: 1.0, green: 0.97, blue: 0.90, alpha: 1.0)
+            light.orientation = simd_quatf(angle: -.pi / 3, axis: [1, 0, 0]) * simd_quatf(angle: .pi / 6, axis: [0, 1, 0])
+            light.shadow = DirectionalLightComponent.Shadow(
+                maximumDistance: 10.0,
+                depthBias: 1.0
+            )
             root.addChild(light)
 
+            // Fill light (cool sky ambient fill) to balance shadows and add color contrast
             let fillLight = PointLight()
-            fillLight.light.intensity = 850
-            fillLight.light.attenuationRadius = 8
-            fillLight.position = [-2.4, 2.3, 2.2]
+            fillLight.light.intensity = 1100
+            fillLight.light.color = UIColor(red: 0.88, green: 0.93, blue: 0.98, alpha: 1.0)
+            fillLight.light.attenuationRadius = 10.0
+            fillLight.position = [-2.8, 2.6, 2.4]
             root.addChild(fillLight)
 
             return root
@@ -477,22 +637,65 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         private func makeTree(for state: HasanaGardenPracticeState, in root: Entity) {
             let scale = state.progress.growthStage.modelScale
             let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
+            let isDormantTree = state.isDormant && !state.isTendedToday
+
+            // 1. Refined Trunk Scaling: Trunk bottom sits exactly at ground level (y = 0.0)
+            let trunkHeight = 0.56 + scale * 0.46
+            let trunkRadius = 0.052 + scale * 0.038
+            let trunkColor = UIColor(HasanaTheme.finance.opacity(isDormantTree ? 0.58 : 0.9))
 
             let trunk = namedModel(
                 id: state.practice.id,
-                mesh: .generateCylinder(height: 0.56 + scale * 0.46, radius: 0.075 + scale * 0.035),
-                color: UIColor(HasanaTheme.finance.opacity(state.isDormant && !state.isTendedToday ? 0.58 : 0.9)),
+                mesh: .generateCylinder(height: trunkHeight, radius: trunkRadius),
+                color: trunkColor,
                 roughness: 0.8
             )
-            trunk.position = [0, 0.26 + scale * 0.2, 0]
+            trunk.position = [0, trunkHeight / 2.0, 0]
             root.addChild(trunk)
 
+            // 2. Refined Multi-Layered Canopy & Branch Offsets
+            // Add branches connecting the trunk to each canopy level to make the tree look natural.
             let canopyCount = state.progress.growthStage.canopyCount
             for index in 0..<canopyCount {
                 let offset = canopyOffset(index: index, scale: scale)
+                
+                // Draw branch from the middle/upper portion of the trunk to the canopy offset
+                let branchStartHeight = trunkHeight * 0.62
+                let branchStart = SIMD3<Float>(0, branchStartHeight, 0)
+                let branchEnd = offset
+                let branchVector = branchEnd - branchStart
+                let branchLength = simd_length(branchVector)
+                
+                if branchLength > 0.05 {
+                    let branchDir = simd_normalize(branchVector)
+                    let branchRadius = (0.024 + scale * 0.012) * (1.0 - Float(index) * 0.15)
+                    let branch = namedModel(
+                        id: state.practice.id,
+                        mesh: .generateCylinder(height: branchLength, radius: branchRadius),
+                        color: trunkColor,
+                        roughness: 0.8
+                    )
+                    branch.position = (branchStart + branchEnd) / 2.0
+                    branch.orientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: branchDir)
+                    root.addChild(branch)
+                }
+
+                // Canopy sphere scale variations for a beautiful multi-layered crown
+                let canopyRadius: Float
+                switch index {
+                case 0:
+                    canopyRadius = 0.22 + scale * 0.16
+                case 1:
+                    canopyRadius = 0.19 + scale * 0.15
+                case 2:
+                    canopyRadius = 0.25 + scale * 0.18
+                default:
+                    canopyRadius = 0.19 + scale * 0.17
+                }
+
                 let canopy = namedModel(
                     id: state.practice.id,
-                    mesh: .generateSphere(radius: 0.19 + scale * 0.17),
+                    mesh: .generateSphere(radius: canopyRadius),
                     color: accent,
                     roughness: 0.65
                 )
@@ -504,36 +707,77 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         private func makeLeafyPlant(for state: HasanaGardenPracticeState, in root: Entity) {
             let scale = state.progress.growthStage.modelScale
             let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
+            let isDormantPlant = state.isDormant && !state.isTendedToday
+
+            let stemHeight = 0.34 + scale * 0.38
+            let stemRadius = 0.025 + scale * 0.015
 
             let stem = namedModel(
                 id: state.practice.id,
-                mesh: .generateCylinder(height: 0.34 + scale * 0.38, radius: 0.035 + scale * 0.02),
+                mesh: .generateCylinder(height: stemHeight, radius: stemRadius),
                 color: accent,
                 roughness: 0.8
             )
-            stem.position = [0, 0.18 + scale * 0.18, 0]
+            stem.position = [0, stemHeight / 2, 0]
             root.addChild(stem)
 
-            // Dormant leafy plants have leaves that droop slightly lower
-            let dormantDrop: Float = (state.isDormant && !state.isTendedToday) ? -0.06 : 0
+            let leafCount = state.progress.growthStage.leafCount
+            let minLeafHeight = stemHeight * 0.3
+            let maxLeafHeight = stemHeight * 0.85
 
-            for index in 0..<state.progress.growthStage.leafCount {
-                let side: Float = index.isMultiple(of: 2) ? -1 : 1
-                let leaf = namedModel(
+            for index in 0..<leafCount {
+                let leafHeight: Float
+                if leafCount > 1 {
+                    leafHeight = minLeafHeight + (Float(index) / Float(leafCount - 1)) * (maxLeafHeight - minLeafHeight)
+                } else {
+                    leafHeight = minLeafHeight
+                }
+
+                let leafLength = 0.18 + scale * 0.12
+                let leafWidth = 0.08 + scale * 0.05
+                let leafThickness: Float = 0.008
+                let petioleLength = 0.04 + scale * 0.03
+                let petioleRadius = 0.005 + scale * 0.003
+
+                let leafGroup = Entity()
+                leafGroup.name = entityName(for: state.practice.id)
+                leafGroup.position = [0, leafHeight, 0]
+
+                // Petiole connects stem to leaf blade
+                let petiole = namedModel(
                     id: state.practice.id,
-                    mesh: .generateBox(width: 0.28 + scale * 0.1, height: 0.05, depth: 0.12 + scale * 0.04),
+                    mesh: .generateCylinder(height: petioleLength, radius: petioleRadius),
+                    color: accent,
+                    roughness: 0.8
+                )
+                // Cylinder is vertical along Y. Rotate around Z by 90 degrees to lay it along X.
+                petiole.orientation = simd_quatf(angle: .pi / 2, axis: [0, 0, 1])
+                petiole.position = [stemRadius + petioleLength / 2, 0, 0]
+                leafGroup.addChild(petiole)
+
+                // Leaf blade
+                let leafBlade = namedModel(
+                    id: state.practice.id,
+                    mesh: .generateBox(width: leafLength, height: leafThickness, depth: leafWidth),
                     color: index.isMultiple(of: 2) ? accent : UIColor(HasanaTheme.accent),
                     roughness: 0.72
                 )
-                leaf.position = [
-                    side * (0.12 + scale * 0.07),
-                    0.22 + Float(index) * 0.08 + dormantDrop,
-                    Float(index) * 0.03 - 0.08
-                ]
-                // Dormant leaves droop further
-                let droopAngle: Float = (state.isDormant && !state.isTendedToday) ? side * 0.82 : side * 0.55
-                leaf.orientation = simd_quatf(angle: droopAngle, axis: [0, 0, 1])
-                root.addChild(leaf)
+                leafBlade.position = [stemRadius + petioleLength + leafLength / 2, 0, 0]
+                leafGroup.addChild(leafBlade)
+
+                // Arrange leaves spiraling around the stem using an angle step of ~137.5 degrees (2.4 radians)
+                let theta = Float(index) * 2.4
+                let rotationY = simd_quatf(angle: theta, axis: [0, 1, 0])
+
+                // Natural droop angles:
+                // Active: slight natural arch down (-0.12 to -0.22 radians / -7 to -12 degrees)
+                // Dormant: hangs/droops significantly more (-0.68 to -0.82 radians / -39 to -47 degrees)
+                let baseDroop = isDormantPlant ? Float(-0.68) : Float(-0.12)
+                let droopAngle = baseDroop - Float(index) * (isDormantPlant ? 0.04 : 0.02)
+                let rotationZ = simd_quatf(angle: droopAngle, axis: [0, 0, 1])
+
+                leafGroup.orientation = rotationY * rotationZ
+                root.addChild(leafGroup)
             }
         }
 
@@ -541,78 +785,210 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             let scale = state.progress.growthStage.modelScale
             let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
 
+            // 1. Stem
+            let stemHeight = 0.32 + scale * 0.4
+            let stemRadius = 0.02 + scale * 0.01
             let stem = namedModel(
                 id: state.practice.id,
-                mesh: .generateCylinder(height: 0.32 + scale * 0.4, radius: 0.03 + scale * 0.014),
-                color: UIColor(HasanaTheme.accent),
-                roughness: 0.82
+                mesh: .generateCylinder(height: stemHeight, radius: stemRadius),
+                color: UIColor(HasanaTheme.accent), // stem green
+                roughness: 0.85
             )
-            stem.position = [0, 0.16 + scale * 0.2, 0]
+            stem.position = [0, stemHeight / 2.0, 0]
             root.addChild(stem)
 
-            let centerHeight: Float = 0.36 + scale * 0.38
+            // Add small green stem leaves for realism if past the seed stage
+            if state.progress.growthStage != .seed {
+                let leafMesh = MeshResource.generateSphere(radius: 1.0)
+                let leafCount = (state.progress.growthStage == .mature || state.progress.growthStage == .flowering) ? 2 : 1
+                for i in 0..<leafCount {
+                    let leaf = ModelEntity(
+                        mesh: leafMesh,
+                        materials: [material(UIColor(HasanaTheme.accent), roughness: 0.75)]
+                    )
+                    leaf.name = entityName(for: state.practice.id)
+                    
+                    let leafHeight = stemHeight * (i == 0 ? 0.35 : 0.65)
+                    let leafScaleX = 0.04 + scale * 0.03
+                    let leafScaleY = 0.01 + scale * 0.005
+                    let leafScaleZ = 0.12 + scale * 0.08
+                    leaf.scale = SIMD3<Float>(leafScaleX, leafScaleY, leafScaleZ)
+                    
+                    let yawAngle = Float(i) * .pi + .pi / 4.0
+                    let pitchAngle: Float = -0.25 // angle outwards/upwards
+                    let yawRot = simd_quatf(angle: yawAngle, axis: [0, 1, 0])
+                    let pitchRot = simd_quatf(angle: pitchAngle, axis: [1, 0, 0])
+                    
+                    leaf.orientation = yawRot * pitchRot
+                    
+                    // position offset along the rotated leaf direction
+                    let leafOffset = (yawRot * pitchRot).act([0, 0, leafScaleZ * 0.6])
+                    leaf.position = SIMD3<Float>(0, leafHeight, 0) + leafOffset
+                    
+                    root.addChild(leaf)
+                }
+            }
+
+            // 2. Flower Center (Receptacle / Disc)
+            let centerHeight = stemHeight
+            let centerRadiusX = 0.075 + scale * 0.045
+            let centerRadiusY = 0.045 + scale * 0.025 // squashed for a more natural look
+            let centerRadiusZ = 0.075 + scale * 0.045
             let center = namedModel(
                 id: state.practice.id,
-                mesh: .generateSphere(radius: 0.075 + scale * 0.045),
+                mesh: .generateSphere(radius: 1.0),
                 color: UIColor(HasanaTheme.gold),
-                roughness: 0.48
+                roughness: 0.5
             )
+            center.scale = SIMD3<Float>(centerRadiusX, centerRadiusY, centerRadiusZ)
             center.position = [0, centerHeight, 0]
             root.addChild(center)
 
-            let fullPetalCount = state.progress.growthStage == .flowering ? 6 : max(2, state.progress.growthStage.leafCount)
-            let petalCount = fullPetalCount
+            // Extract HSBA to create variations for inner/outer petals
+            var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            accent.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+            
+            let outerColor = accent
+            let innerColor = UIColor(hue: h, saturation: max(0, s - 0.08), brightness: min(1, b + 0.12), alpha: a)
 
-            for index in 0..<petalCount {
-                let angle = (Float(index) / Float(max(petalCount, 1))) * .pi * 2
-                let petal = namedModel(
-                    id: state.practice.id,
-                    mesh: .generateBox(width: 0.16 + scale * 0.07, height: 0.045, depth: 0.09 + scale * 0.04),
-                    color: accent,
-                    roughness: 0.58
-                )
-                let petalRadius: Float = 0.12 + scale * 0.05
-                petal.position = [
-                    cos(angle) * petalRadius,
-                    centerHeight,
-                    sin(angle) * petalRadius
-                ]
-                petal.orientation = simd_quatf(angle: -angle, axis: [0, 1, 0])
-                root.addChild(petal)
+            // 3. Petals
+            let basePetalMesh = MeshResource.generateSphere(radius: 1.0)
+            
+            // Build rings of petals based on growth stage
+            struct PetalRing {
+                let count: Int
+                let isInner: Bool
+                let scaleFactor: Float
+                let pitchAngle: Float // tilt upward
+                let radiusOffset: Float
+            }
+            
+            var rings: [PetalRing] = []
+            
+            switch state.progress.growthStage {
+            case .seed:
+                // Seed stage: just a small closed bud, no fully formed petals yet
+                break
+            case .sprout:
+                // Sprout: 2 tiny emerging petals
+                rings.append(PetalRing(count: 2, isInner: false, scaleFactor: 0.5, pitchAngle: 0.5, radiusOffset: 0.02))
+            case .young:
+                // Young: 4 petals in one ring
+                rings.append(PetalRing(count: 4, isInner: false, scaleFactor: 0.75, pitchAngle: 0.35, radiusOffset: 0.04))
+            case .mature:
+                // Mature: 6 petals in one ring
+                rings.append(PetalRing(count: 6, isInner: false, scaleFactor: 0.9, pitchAngle: 0.25, radiusOffset: 0.06))
+            case .flowering:
+                // Flowering: 2 layers (double flower!) for high-quality lush look
+                // Outer ring: 6 petals, flatter tilt
+                rings.append(PetalRing(count: 6, isInner: false, scaleFactor: 1.0, pitchAngle: 0.15, radiusOffset: 0.08))
+                // Inner ring: 5 petals, smaller, more upright, staggered
+                rings.append(PetalRing(count: 5, isInner: true, scaleFactor: 0.75, pitchAngle: 0.38, radiusOffset: 0.04))
+            }
+            
+            // Generate petals for each ring
+            for ring in rings {
+                let color = ring.isInner ? innerColor : outerColor
+                let petalMaterial = material(color, roughness: 0.6)
+                
+                for index in 0..<ring.count {
+                    // Stagger the inner ring starting angle
+                    let startOffset: Float = ring.isInner ? .pi / 5.0 : 0.0
+                    let angle = startOffset + (Float(index) / Float(ring.count)) * .pi * 2.0
+                    
+                    // Deterministic organic variation based on petal index & practice ID
+                    let hash = state.practice.id.hashValue
+                    let positiveHash = hash >= 0 ? hash : -hash
+                    let seedVal = Float((positiveHash + index) % 7) / 7.0
+                    let varScale = 0.92 + seedVal * 0.16
+                    let varPitch = (seedVal - 0.5) * 0.08
+                    let varYaw = (seedVal - 0.5) * 0.06
+                    
+                    // Dormant flowers droop/wilt
+                    let activePitch = ring.pitchAngle + varPitch
+                    let pitchAngle = (state.isDormant && !state.isTendedToday) ? -0.45 + varPitch : activePitch
+                    
+                    // Create petal ModelEntity
+                    let petal = ModelEntity(mesh: basePetalMesh, materials: [petalMaterial])
+                    petal.name = entityName(for: state.practice.id)
+                    
+                    // Dimensions: width, thickness, length
+                    let petalWidth = (0.045 + scale * 0.035) * ring.scaleFactor * varScale
+                    let petalThickness = (0.012 + scale * 0.008) * ring.scaleFactor
+                    let petalLength = (0.13 + scale * 0.09) * ring.scaleFactor * varScale
+                    
+                    petal.scale = SIMD3<Float>(petalWidth, petalThickness, petalLength)
+                    
+                    // Rotations
+                    let yawRot = simd_quatf(angle: angle + varYaw, axis: [0, 1, 0])
+                    let pitchRot = simd_quatf(angle: pitchAngle, axis: [1, 0, 0])
+                    petal.orientation = yawRot * pitchRot
+                    
+                    // Position using the orientation to offset from center
+                    let petalRadius = (0.035 + scale * 0.025) + ring.radiusOffset
+                    let offset = (yawRot * pitchRot).act([0, 0, petalRadius])
+                    petal.position = center.position + offset
+                    
+                    root.addChild(petal)
+                }
             }
         }
 
         private func makeTendedHalo(for id: HasanaGardenPracticeID) -> Entity {
-            let halo = namedModel(
+            let root = Entity()
+
+            // Outer highlight ring - acts as a tap highlight / selection ring. Shiny, metallic, and slightly wider.
+            let outerRing = namedModel(
                 id: id,
-                mesh: .generateCylinder(height: 0.018, radius: 0.34),
-                color: UIColor(HasanaTheme.gold.opacity(0.46)),
-                roughness: 0.3
+                mesh: .generateCylinder(height: 0.012, radius: 0.38),
+                color: UIColor(HasanaTheme.gold),
+                roughness: 0.15,
+                isMetallic: true
             )
-            halo.position = [0, 0.055, 0]
-            return halo
+            outerRing.position = [0, 0.056, 0]
+
+            // Inner halo plate - soft, translucent glow color.
+            let innerPlate = namedModel(
+                id: id,
+                mesh: .generateCylinder(height: 0.006, radius: 0.34),
+                color: UIColor(HasanaTheme.gold.opacity(0.48)),
+                roughness: 0.4,
+                isMetallic: false
+            )
+            innerPlate.position = [0, 0.055, 0]
+
+            root.addChild(outerRing)
+            root.addChild(innerPlate)
+            return root
         }
 
         private func makeTendedCheckmark(for id: HasanaGardenPracticeID) -> Entity {
             let root = Entity()
+            
+            // Position the checkmark to the front-right of the plant to prevent clipping with the stem.
+            root.position = [0.24, 0.08, 0.24]
+            // Tilt the checkmark slightly forward to face the camera.
+            root.orientation = simd_quatf(angle: -0.25, axis: [1, 0, 0])
 
             let shortStroke = namedModel(
                 id: id,
-                mesh: .generateBox(width: 0.08, height: 0.035, depth: 0.20),
-                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
-                roughness: 0.42
+                mesh: .generateBox(width: 0.032, height: 0.12, depth: 0.032),
+                color: UIColor(HasanaTheme.gold),
+                roughness: 0.15,
+                isMetallic: true
             )
-            shortStroke.position = [-0.045, 0.112, 0.0]
-            shortStroke.orientation = simd_quatf(angle: 0.72, axis: [0, 1, 0])
+            shortStroke.position = [-0.035, 0.08, 0]
+            shortStroke.orientation = simd_quatf(angle: .pi / 4, axis: [0, 0, 1])
 
             let longStroke = namedModel(
                 id: id,
-                mesh: .generateBox(width: 0.10, height: 0.035, depth: 0.32),
-                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
-                roughness: 0.42
+                mesh: .generateBox(width: 0.032, height: 0.22, depth: 0.032),
+                color: UIColor(HasanaTheme.gold),
+                roughness: 0.15,
+                isMetallic: true
             )
-            longStroke.position = [0.075, 0.126, 0.02]
-            longStroke.orientation = simd_quatf(angle: -0.68, axis: [0, 1, 0])
+            longStroke.position = [0.045, 0.11, 0]
+            longStroke.orientation = simd_quatf(angle: -.pi / 4, axis: [0, 0, 1])
 
             root.addChild(shortStroke)
             root.addChild(longStroke)
@@ -623,18 +999,19 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             id: HasanaGardenPracticeID,
             mesh: MeshResource,
             color: UIColor,
-            roughness: Float
+            roughness: Float,
+            isMetallic: Bool = false
         ) -> ModelEntity {
             let model = ModelEntity(
                 mesh: mesh,
-                materials: [material(color, roughness: roughness)]
+                materials: [material(color, roughness: roughness, isMetallic: isMetallic)]
             )
             model.name = entityName(for: id)
             return model
         }
 
-        private func material(_ color: UIColor, roughness: Float) -> SimpleMaterial {
-            SimpleMaterial(color: color, roughness: .float(roughness), isMetallic: false)
+        private func material(_ color: UIColor, roughness: Float, isMetallic: Bool = false) -> SimpleMaterial {
+            SimpleMaterial(color: color, roughness: .float(roughness), isMetallic: isMetallic)
         }
 
         private func practiceID(from entity: Entity) -> HasanaGardenPracticeID? {
@@ -643,7 +1020,9 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             while let current = candidate {
                 if current.name.hasPrefix("practice:") {
                     let rawValue = current.name.replacingOccurrences(of: "practice:", with: "")
-                    return HasanaGardenPracticeID(rawValue: rawValue)
+                    if let practiceID = HasanaGardenPracticeID(rawValue: rawValue) {
+                        return practiceID
+                    }
                 }
                 candidate = current.parent
             }
@@ -722,11 +1101,14 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         private func canopyOffset(index: Int, scale: Float) -> SIMD3<Float> {
             switch index {
             case 0:
-                [-0.16 * scale, 0.84 + scale * 0.28, 0.02]
+                // Left lower canopy offset, scales nicely
+                [-0.22 * scale, 0.74 + scale * 0.34, 0.04 * scale]
             case 1:
-                [0.18 * scale, 0.88 + scale * 0.3, -0.04]
+                // Right middle canopy offset, slightly higher and forward
+                [0.24 * scale, 0.84 + scale * 0.38, -0.05 * scale]
             case 2:
-                [0.0, 1.06 + scale * 0.36, 0.08]
+                // Top crown canopy offset
+                [0.0, 1.05 + scale * 0.44, 0.08 * scale]
             default:
                 [0.0, 0.92 + scale * 0.22, 0.0]
             }
@@ -791,7 +1173,7 @@ private struct HasanaGardenStatusBar: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 statusItem(
                     icon: "checkmark.seal.fill",
                     value: "\(tendedTodayCount)/\(totalCount)",
@@ -807,7 +1189,7 @@ private struct HasanaGardenStatusBar: View {
                 )
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 statusItem(
                     icon: "checkmark.seal.fill",
                     value: "\(tendedTodayCount)/\(totalCount)",
@@ -824,24 +1206,50 @@ private struct HasanaGardenStatusBar: View {
             }
         }
         .padding(8)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .background(HasanaTheme.elevatedSurface.opacity(0.76), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(HasanaTheme.elevatedSurface.opacity(0.24))
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(HasanaTheme.border.opacity(0.68), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(0.35),
+                            .white.opacity(0.08),
+                            .clear,
+                            .white.opacity(0.12)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
-        .shadow(color: HasanaTheme.shadow.opacity(0.1), radius: 14, x: 0, y: 8)
+        .shadow(color: HasanaTheme.shadow.opacity(0.08), radius: 16, x: 0, y: 6)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary)
     }
 
     private func statusItem(icon: String, value: String, label: String, color: Color) -> some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(color)
                 .frame(width: 24, height: 24)
-                .background(color.opacity(0.12), in: Circle())
+                .background(color.opacity(0.15), in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.25), .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 0.5
+                        )
+                }
 
             Text(value)
                 .font(.system(size: 14, weight: .bold))
@@ -854,9 +1262,23 @@ private struct HasanaGardenStatusBar: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.74), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(HasanaTheme.elevatedSurfaceSoft.opacity(0.48))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.18), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.6
+                )
+        }
     }
 
     private var todayLabel: String {
@@ -891,19 +1313,35 @@ private struct HasanaGardenStateLegend: View {
     let language: HasanaLanguage
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             legendItem(icon: "checkmark.seal.fill", text: tendedText, color: HasanaTheme.gold)
             legendItem(icon: "circle", text: untendedText, color: HasanaTheme.textMuted)
             legendItem(icon: "leaf.arrow.circlepath", text: dormantText, color: HasanaTheme.reflection)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule())
-        .background(HasanaTheme.elevatedSurface.opacity(0.46), in: Capsule())
+        .background(
+            Capsule()
+                .fill(HasanaTheme.elevatedSurface.opacity(0.24))
+        )
         .overlay {
             Capsule()
-                .stroke(HasanaTheme.border.opacity(0.4), lineWidth: 0.7)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(0.35),
+                            .white.opacity(0.06),
+                            .clear,
+                            .white.opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
+        .shadow(color: HasanaTheme.shadow.opacity(0.06), radius: 10, x: 0, y: 4)
         .accessibilityElement(children: .combine)
     }
 
@@ -963,22 +1401,49 @@ private struct HasanaGardenHint: View {
             }
         }
         .foregroundStyle(HasanaTheme.textMuted)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .background(HasanaTheme.elevatedSurface.opacity(0.68), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(HasanaTheme.elevatedSurface.opacity(0.24))
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.7)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(0.28),
+                            .white.opacity(0.06),
+                            .clear,
+                            .white.opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
+        .shadow(color: HasanaTheme.shadow.opacity(0.05), radius: 12, x: 0, y: 5)
         .accessibilityElement(children: .combine)
     }
 
     private func hintIcon(_ systemName: String) -> some View {
         Image(systemName: systemName)
-            .font(.system(size: 12, weight: .bold))
-            .frame(width: 24, height: 24)
-            .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.72), in: Circle())
+            .font(.system(size: 11, weight: .bold))
+            .frame(width: 22, height: 22)
+            .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.35), in: Circle())
+            .overlay {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.2), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
     }
 
     private var text: String {

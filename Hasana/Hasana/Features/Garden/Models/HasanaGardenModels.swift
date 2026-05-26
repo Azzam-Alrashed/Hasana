@@ -68,17 +68,19 @@ enum HasanaGardenGrowthStage: String, Codable, CaseIterable, Hashable {
     case flowering
 
     init(totalTendedDays: Int) {
-        switch totalTendedDays {
-        case 0:
+        if totalTendedDays <= 0 {
             self = .seed
-        case 1...2:
-            self = .sprout
-        case 3...6:
-            self = .young
-        case 7...13:
-            self = .mature
-        default:
-            self = .flowering
+        } else {
+            switch totalTendedDays {
+            case 1...2:
+                self = .sprout
+            case 3...6:
+                self = .young
+            case 7...13:
+                self = .mature
+            default:
+                self = .flowering
+            }
         }
     }
 
@@ -219,15 +221,7 @@ struct HasanaGardenProgress: Identifiable, Codable, Equatable {
     /// Returns nil if never tended.
     func daysSinceLastTended(todayKey: String) -> Int? {
         guard let last = lastTendedDayKey else { return nil }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard
-            let lastDate = formatter.date(from: last),
-            let todayDate = formatter.date(from: todayKey)
-        else { return nil }
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.day], from: lastDate, to: todayDate)
-        return components.day
+        return HasanaGardenDateParser.shared.daysBetween(last, and: todayKey)
     }
 
     /// A practice is gently resting when it was tended at some point in history but
@@ -277,6 +271,29 @@ struct HasanaGardenSnapshot: Codable, Equatable {
     var schemaVersion: Int
     var progress: [HasanaGardenProgress]
 
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case progress
+    }
+
+    init(schemaVersion: Int, progress: [HasanaGardenProgress]) {
+        self.schemaVersion = schemaVersion
+        self.progress = progress
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.schemaVersion = try container.decode(Int.self, forKey: .schemaVersion)
+        let safeProgress = try container.decode([SafeDecodable<HasanaGardenProgress>].self, forKey: .progress)
+        self.progress = safeProgress.compactMap { $0.value }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
+        try container.encode(progress, forKey: .progress)
+    }
+
     /// Failable migration from the raw stored Data.
     /// Handles both v1 (with viewportOffset/viewportScale) and v2.
     static func decode(from data: Data) -> HasanaGardenSnapshot? {
@@ -288,18 +305,59 @@ struct HasanaGardenSnapshot: Codable, Equatable {
         }
         // Fallback: try decoding v1 (has extra fields — we only need `progress`)
         if let legacy = try? decoder.decode(HasanaGardenSnapshotV1.self, from: data) {
-            return HasanaGardenSnapshot(schemaVersion: currentSchemaVersion, progress: legacy.progress)
+            return HasanaGardenSnapshot(schemaVersion: currentSchemaVersion, progress: legacy.progress.compactMap { $0.value })
         }
         return nil
     }
 }
 
 /// Internal v1 schema for migration purposes only.
-private struct HasanaGardenSnapshotV1: Codable {
+private struct HasanaGardenSnapshotV1: Decodable {
     var schemaVersion: Int
-    var progress: [HasanaGardenProgress]
+    var progress: [SafeDecodable<HasanaGardenProgress>]
     var viewportOffset: CGSize?
     var viewportScale: CGFloat?
+}
+
+/// A wrapper to decode elements of an array safely.
+/// If an element fails to decode (e.g. unknown enum cases or missing keys), it decodes to nil instead of failing the entire array.
+struct SafeDecodable<Value: Decodable>: Decodable {
+    let value: Value?
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.value = try? container.decode(Value.self)
+    }
+}
+
+/// Thread-safe parser for yyyy-MM-dd calendar date differences.
+private final class HasanaGardenDateParser {
+    static let shared = HasanaGardenDateParser()
+    private let formatter: DateFormatter
+    private let calendar: Calendar
+    private let lock = NSLock()
+    
+    private init() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        self.formatter = formatter
+        
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        self.calendar = calendar
+    }
+    
+    func daysBetween(_ startKey: String, and endKey: String) -> Int? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let startDate = formatter.date(from: startKey),
+              let endDate = formatter.date(from: endKey) else {
+            return nil
+        }
+        return calendar.dateComponents([.day], from: startDate, to: endDate).day
+    }
 }
 
 extension HasanaGardenPractice {
