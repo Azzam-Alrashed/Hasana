@@ -308,6 +308,9 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             arView.scene.addAnchor(cameraAnchor)
             cameraAnchor.addChild(camera)
 
+            // Register custom wind system and components globally in the RealityKit scene
+            HasanaWindSystem.register()
+
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
             let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
             let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
@@ -336,9 +339,11 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         }
 
         func updateCamera() {
-            guard lastCameraRevision != cameraState.revision || camera.transform.matrix == matrix_identity_float4x4 else {
-                return
-            }
+            // Always update during deceleration — don't gate on revision alone.
+            // Only skip if revision matches AND the camera already has a valid transform.
+            let needsUpdate = lastCameraRevision != cameraState.revision
+                || camera.transform.matrix == matrix_identity_float4x4
+            guard needsUpdate else { return }
 
             lastCameraRevision = cameraState.revision
             let distance = cameraState.distance
@@ -377,19 +382,27 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                 panStartPitch = cameraState.pitch
             case .changed:
                 let translation = recognizer.translation(in: recognizer.view)
+                // Scale sensitivity by zoom distance so far-out panning feels consistent.
+                let distanceFactor = cameraState.distance / 6.6
+                let yawSensitivity = Float(0.005 * distanceFactor)
+                let pitchSensitivity = Float(0.003 * distanceFactor)
                 cameraState.update(
-                    yaw: panStartYaw - Float(translation.x) * 0.006,
-                    pitch: panStartPitch - Float(translation.y) * 0.004
+                    yaw: panStartYaw + Float(translation.x) * yawSensitivity,
+                    pitch: panStartPitch - Float(translation.y) * pitchSensitivity
                 )
                 updateCamera()
             case .ended, .cancelled, .failed:
                 let velocity = recognizer.velocity(in: recognizer.view)
+                let distanceFactor = cameraState.distance / 6.6
+                let yawSensitivity = CGFloat(0.005 * distanceFactor)
+                let pitchSensitivity = CGFloat(0.003 * distanceFactor)
                 panVelocity = CGPoint(
-                    x: CGFloat(-velocity.x * 0.006),
-                    y: CGFloat(-velocity.y * 0.004)
+                    x: velocity.x * yawSensitivity,
+                    y: -velocity.y * pitchSensitivity
                 )
-                panVelocity.x = max(min(panVelocity.x, 10.0), -10.0)
-                panVelocity.y = max(min(panVelocity.y, 10.0), -10.0)
+                // Cap inertia to prevent wild spinning.
+                panVelocity.x = max(min(panVelocity.x, 8.0), -8.0)
+                panVelocity.y = max(min(panVelocity.y, 5.0), -5.0)
                 startDeceleration()
             default:
                 break
@@ -402,13 +415,18 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                 stopDeceleration()
                 pinchStartDistance = cameraState.distance
             case .changed:
-                let targetDistance = pinchStartDistance / Float(recognizer.scale)
+                let scale = max(Float(recognizer.scale), 0.01)
+                let targetDistance = pinchStartDistance / scale
                 cameraState.update(distance: targetDistance)
                 updateCamera()
             case .ended, .cancelled, .failed:
-                let currentScale = Float(recognizer.scale) > 0 ? Float(recognizer.scale) : 1.0
-                zoomVelocity = -Float(pinchStartDistance) / (currentScale * currentScale) * Float(recognizer.velocity)
-                zoomVelocity = max(min(zoomVelocity, 15.0), -15.0)
+                // Velocity from UIPinchGestureRecognizer is in scale/s.
+                // Convert to distance/s: Δdistance ≈ -currentDistance * velocity_scale / scale.
+                let scale = max(Float(recognizer.scale), 0.01)
+                let currentDistance = pinchStartDistance / scale
+                // Negative because pinching in (scale>1) should decrease distance.
+                zoomVelocity = -currentDistance * Float(recognizer.velocity) / scale
+                zoomVelocity = max(min(zoomVelocity, 12.0), -12.0)
                 startDeceleration()
             default:
                 break
@@ -434,44 +452,54 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             let currentTime = CACurrentMediaTime()
             let dt = Float(currentTime - lastStepTime)
             lastStepTime = currentTime
-            
-            let cappedDt = min(max(dt, 0.001), 0.1)
+
+            let cappedDt = min(max(dt, 0.001), 0.05)
             var didUpdate = false
-            
+
+            // Pan inertia — decay exponent 0.12 gives a natural 0.6s trailing stop at 60fps.
             let panSpeedSq = panVelocity.x * panVelocity.x + panVelocity.y * panVelocity.y
-            if panSpeedSq > 0.0001 {
-                let decay = CGFloat(pow(0.05, Double(cappedDt)))
-                let deltaYaw = Float(panVelocity.x) * cappedDt
+            if panSpeedSq > 0.00001 {
+                let decay = CGFloat(pow(0.12, Double(cappedDt)))
+                let deltaYaw   = Float(panVelocity.x) * cappedDt
                 let deltaPitch = Float(panVelocity.y) * cappedDt
-                
+
                 cameraState.update(
                     yaw: cameraState.yaw + deltaYaw,
                     pitch: cameraState.pitch + deltaPitch
                 )
-                
+
                 panVelocity.x *= decay
                 panVelocity.y *= decay
                 didUpdate = true
             } else {
                 panVelocity = .zero
             }
-            
-            if abs(zoomVelocity) > 0.01 {
-                let decay = Float(pow(0.05, Double(cappedDt)))
+
+            // Zoom inertia — same decay curve.
+            if abs(zoomVelocity) > 0.005 {
+                let decay = Float(pow(0.12, Double(cappedDt)))
                 let deltaDistance = zoomVelocity * cappedDt
-                
+
                 cameraState.update(distance: cameraState.distance + deltaDistance)
-                
+
                 zoomVelocity *= decay
                 didUpdate = true
             } else {
                 zoomVelocity = 0
             }
-            
+
             if didUpdate {
-                updateCamera()
+                // Bypass revision guard during inertia — directly recompute camera position.
+                let dist = cameraState.distance
+                let hDist = cos(cameraState.pitch) * dist
+                let pos = SIMD3<Float>(
+                    sin(cameraState.yaw) * hDist,
+                    sin(cameraState.pitch) * dist + 0.45,
+                    cos(cameraState.yaw) * hDist
+                )
+                camera.look(at: SIMD3<Float>(0, 0.28, 0), from: pos, relativeTo: nil)
             }
-            
+
             if panVelocity == .zero && zoomVelocity == 0 {
                 stopDeceleration()
                 cameraState.save()
@@ -625,6 +653,15 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                 root.addChild(makeTendedCheckmark(for: state.practice.id))
             }
 
+            // Set up physical wind receiver properties on the plant root entity
+            let windReceiver = WindReceiverComponent(
+                practiceID: state.practice.id.rawValue,
+                visualRole: state.practice.visualRole.rawValue,
+                growthStage: state.progress.growthStage.rawValue,
+                isDormant: state.isDormant && !state.isTendedToday
+            )
+            root.components[WindReceiverComponent.self] = windReceiver
+
             root.generateCollisionShapes(recursive: true)
             return root
         }
@@ -635,73 +672,8 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
         }
 
         private func makeTree(for state: HasanaGardenPracticeState, in root: Entity) {
-            let scale = state.progress.growthStage.modelScale
-            let accent = accentColor(for: state.practice, isTendedToday: state.isTendedToday, isDormant: state.isDormant)
-            let isDormantTree = state.isDormant && !state.isTendedToday
-
-            // 1. Refined Trunk Scaling: Trunk bottom sits exactly at ground level (y = 0.0)
-            let trunkHeight = 0.56 + scale * 0.46
-            let trunkRadius = 0.052 + scale * 0.038
-            let trunkColor = UIColor(HasanaTheme.finance.opacity(isDormantTree ? 0.58 : 0.9))
-
-            let trunk = namedModel(
-                id: state.practice.id,
-                mesh: .generateCylinder(height: trunkHeight, radius: trunkRadius),
-                color: trunkColor,
-                roughness: 0.8
-            )
-            trunk.position = [0, trunkHeight / 2.0, 0]
-            root.addChild(trunk)
-
-            // 2. Refined Multi-Layered Canopy & Branch Offsets
-            // Add branches connecting the trunk to each canopy level to make the tree look natural.
-            let canopyCount = state.progress.growthStage.canopyCount
-            for index in 0..<canopyCount {
-                let offset = canopyOffset(index: index, scale: scale)
-                
-                // Draw branch from the middle/upper portion of the trunk to the canopy offset
-                let branchStartHeight = trunkHeight * 0.62
-                let branchStart = SIMD3<Float>(0, branchStartHeight, 0)
-                let branchEnd = offset
-                let branchVector = branchEnd - branchStart
-                let branchLength = simd_length(branchVector)
-                
-                if branchLength > 0.05 {
-                    let branchDir = simd_normalize(branchVector)
-                    let branchRadius = (0.024 + scale * 0.012) * (1.0 - Float(index) * 0.15)
-                    let branch = namedModel(
-                        id: state.practice.id,
-                        mesh: .generateCylinder(height: branchLength, radius: branchRadius),
-                        color: trunkColor,
-                        roughness: 0.8
-                    )
-                    branch.position = (branchStart + branchEnd) / 2.0
-                    branch.orientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: branchDir)
-                    root.addChild(branch)
-                }
-
-                // Canopy sphere scale variations for a beautiful multi-layered crown
-                let canopyRadius: Float
-                switch index {
-                case 0:
-                    canopyRadius = 0.22 + scale * 0.16
-                case 1:
-                    canopyRadius = 0.19 + scale * 0.15
-                case 2:
-                    canopyRadius = 0.25 + scale * 0.18
-                default:
-                    canopyRadius = 0.19 + scale * 0.17
-                }
-
-                let canopy = namedModel(
-                    id: state.practice.id,
-                    mesh: .generateSphere(radius: canopyRadius),
-                    color: accent,
-                    roughness: 0.65
-                )
-                canopy.position = offset
-                root.addChild(canopy)
-            }
+            let tree = HasanaGardenTreeGeometry.generateEntity(for: state)
+            root.addChild(tree)
         }
 
         private func makeLeafyPlant(for state: HasanaGardenPracticeState, in root: Entity) {
