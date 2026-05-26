@@ -11,7 +11,7 @@ struct RootView: View {
     @State private var commandPalette = CommandPaletteViewModel()
     @State private var gardenStore = HasanaGardenStore()
     @State private var appSettings = HasanaAppSettings()
-    @State private var viewport = ViewportState()
+    @State private var gardenCamera = HasanaGardenCameraState()
     @State private var isShowingSettings = false
     @State private var isShowingGardenLog = false
     @State private var isShowingPayments = false
@@ -33,7 +33,7 @@ struct RootView: View {
         ZStack {
             HasanaGardenView(
                 store: gardenStore,
-                viewport: $viewport,
+                cameraState: gardenCamera,
                 language: appSettings.language,
                 onPracticeSelected: { practiceID in
                     gardenStore.selectPractice(practiceID)
@@ -149,8 +149,7 @@ struct RootView: View {
         switch commandID {
         case .resetView:
             withAnimation(.spring(response: 0.46, dampingFraction: 0.82)) {
-                viewport.reset(offset: .zero, scale: 1.0)
-                gardenStore.updateViewport(offset: .zero, scale: 1.0)
+                gardenCamera.reset()
             }
         case .logWorship:
             gardenStore.selectPractice(nil)

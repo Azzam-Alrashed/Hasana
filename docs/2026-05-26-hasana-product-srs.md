@@ -30,7 +30,7 @@ Hasana helps young Muslims build consistency with obligatory worship and selecte
 
 The MVP shall focus on:
 
-- A lifelong worship garden.
+- An AR-ready RealityKit 3D worship garden bed.
 - Eight core practices: Fajr, Dhuhr, Asr, Maghrib, Isha, Quran, Adhkar, and Witr.
 - Simple daily done/undone logging.
 - Gentle growth, dormant, and return states.
@@ -154,15 +154,15 @@ Needs:
 
 | ID | Requirement |
 | --- | --- |
-| `UI-001` | The garden shall be the main screen after onboarding. |
-| `UI-002` | The garden shall visually represent each MVP practice as a plant, flower, or foundational tree. |
+| `UI-001` | The 3D garden shall be the main screen after onboarding. |
+| `UI-002` | The 3D garden shall visually represent each MVP practice as a plant, flower, or foundational tree. |
 | `UI-003` | The app shall provide an onboarding flow explaining the garden metaphor and core value. |
 | `UI-004` | The app shall provide a logging surface for tending and untending today's practices. |
 | `UI-005` | The app shall provide settings for language, appearance, theme, and app icon where supported. |
 | `UI-006` | The app shall provide a disabled development-support donation placeholder. |
 | `UI-007` | The app shall use warm, youth-friendly, spiritually gentle copy. |
 | `UI-008` | The app shall avoid shame-based language, public comparison language, and harsh failure-state copy. |
-| `UI-009` | The app shall allow users to recover from garden navigation changes through a reset view action. |
+| `UI-009` | The app shall allow users to recover from 3D camera navigation changes through a reset view action. |
 | `UI-010` | The app shall make tended status visible without relying on color alone. |
 
 ### 3.2 Localization And Layout Interfaces
@@ -171,7 +171,7 @@ Needs:
 | --- | --- |
 | `UI-011` | The MVP shall support Arabic and English user-facing copy. |
 | `UI-012` | Arabic screens shall use RTL layout where natural for text and controls. |
-| `UI-013` | The garden canvas may preserve a stable left-to-right coordinate space to avoid changing plant positions when language changes. |
+| `UI-013` | The 3D garden may preserve a stable world coordinate space to avoid changing plant positions when language changes. |
 | `UI-014` | Core controls shall not clip primary Arabic or English text on common supported iPhone sizes. |
 
 ### 3.3 Software Interfaces
@@ -219,25 +219,26 @@ Acceptance criteria:
 | `AC-002` | Given onboarding is visible, when the user changes language, then onboarding copy updates to the selected language. |
 | `AC-003` | Given the user skips or completes onboarding, when they relaunch the app, then onboarding does not block access to the garden. |
 
-### 4.2 Lifelong Garden Canvas
+### 4.2 AR-Ready 3D Garden
 
 | ID | Requirement |
 | --- | --- |
-| `FR-006` | The app shall render the lifelong garden as the primary post-onboarding screen. |
-| `FR-007` | The garden shall show each MVP practice as a distinct visual element. |
-| `FR-008` | The garden shall support panning and zooming. |
-| `FR-009` | The garden shall persist viewport offset and zoom. |
-| `FR-010` | Selecting a practice in the garden shall open logging for that practice. |
-| `FR-011` | The app shall provide a reset view action that returns the garden to its default viewport. |
+| `FR-006` | The app shall render an AR-ready RealityKit 3D garden bed as the primary post-onboarding screen. |
+| `FR-007` | The 3D garden shall show each MVP practice as a distinct tappable 3D plant, flower, or foundational tree. |
+| `FR-008` | The 3D garden shall support orbit drag and pinch zoom camera interaction. |
+| `FR-009` | The 3D garden shall persist camera yaw, pitch, and distance independently from worship progress. |
+| `FR-010` | Selecting a practice entity in the 3D garden shall open logging for that practice. |
+| `FR-011` | The app shall provide a reset view action that returns the 3D camera to its default orbit position. |
+| `FR-011A` | MVP 3D plants may be procedural RealityKit entities, with a path for future USDZ model replacement. |
 
 Acceptance criteria:
 
 | ID | Criteria |
 | --- | --- |
-| `AC-004` | Given the garden is open, when the user pans or zooms, then the viewport changes smoothly. |
-| `AC-005` | Given a saved viewport, when the user returns to the garden, then the saved offset and zoom are restored. |
-| `AC-006` | Given a visible practice, when the user taps it, then the logging surface opens for that practice. |
-| `AC-007` | Given the user triggers reset view, then the garden returns to the default viewport. |
+| `AC-004` | Given the 3D garden is open, when the user drags or pinches, then the camera orbits and zooms smoothly. |
+| `AC-005` | Given saved camera state, when the user returns to the garden, then the saved yaw, pitch, and distance are restored. |
+| `AC-006` | Given a visible 3D practice plant, when the user taps it, then the logging surface opens for that practice. |
+| `AC-007` | Given the user triggers reset view, then the 3D camera returns to the default orbit position. |
 
 ### 4.3 MVP Practice Catalog
 
@@ -365,7 +366,7 @@ Acceptance criteria:
 | `DATA-007` | The app shall store accumulated tended-day history sufficient to calculate growth stages. |
 | `DATA-008` | The app shall store whether onboarding has been completed or skipped. |
 | `DATA-009` | The app shall store language, appearance, theme, and app icon settings locally. |
-| `DATA-010` | The app shall store garden viewport offset and zoom locally. |
+| `DATA-010` | The app shall store 3D garden camera yaw, pitch, and distance locally. |
 | `DATA-011` | The app shall handle missing or corrupt local data by falling back to safe defaults. |
 | `DATA-012` | The MVP shall not store account credentials because accounts are out of scope. |
 | `DATA-013` | The MVP shall not store payment credentials because live payments are out of scope. |
@@ -404,9 +405,9 @@ Acceptance criteria:
 
 | ID | Requirement |
 | --- | --- |
-| `NFR-014` | Garden panning and zooming shall feel responsive on supported devices. |
+| `NFR-014` | 3D garden orbiting and zooming shall feel responsive on supported devices. |
 | `NFR-015` | Opening MVP sheets and settings shall occur without noticeable blocking caused by persistence operations. |
-| `NFR-016` | Local data reads and writes shall not cause visible garden scroll or gesture stutter. |
+| `NFR-016` | Local data reads and writes shall not cause visible 3D garden gesture or camera stutter. |
 
 ### 6.5 Religious Content And Tone
 
@@ -503,6 +504,7 @@ MVP acceptance requires:
 
 - Every `FR` in sections 4.1 through 4.8 passes its linked acceptance criteria.
 - Arabic and English MVP flows pass manual QA.
+- The RealityKit 3D garden renders the eight MVP practices and supports orbit, pinch zoom, and tap selection.
 - Worship progress persists locally across restart.
 - Missed days do not erase accumulated growth.
 - Dormant states, if present, remain gentle and non-punitive.
@@ -515,7 +517,7 @@ MVP acceptance requires:
 | Goal | Requirement IDs | Acceptance Criteria |
 | --- | --- | --- |
 | `GOAL-001` Build worship consistency | `FR-012` to `FR-025`, `DATA-005` to `DATA-007` | `AC-008` to `AC-014` |
-| `GOAL-002` Represent consistency through a lifelong garden | `FR-006` to `FR-011`, `FR-026` to `FR-028`, `UI-001`, `UI-002` | `AC-004` to `AC-007`, `AC-015`, `AC-016` |
+| `GOAL-002` Represent consistency through a lifelong garden | `FR-006` to `FR-011A`, `FR-026` to `FR-028`, `UI-001`, `UI-002` | `AC-004` to `AC-007`, `AC-015`, `AC-016` |
 | `GOAL-003` Make returning emotionally safe | `FR-029` to `FR-032`, `FR-037`, `NFR-008`, `NFR-019` | `AC-017`, `AC-018`, `AC-021` |
 | `GOAL-004` Support Arabic and English | `FR-003`, `FR-016`, `FR-017`, `FR-038`, `UI-011` to `UI-014` | `AC-002`, `AC-008`, `AC-009`, `AC-022` |
 | `GOAL-005` Keep worship data private | `DATA-001` to `DATA-004`, `DATA-012`, `NFR-001` to `NFR-004` | `AC-014`, verification summary privacy checks |
@@ -526,7 +528,7 @@ MVP acceptance requires:
 ## 11. Release Readiness Checklist
 
 - Onboarding appears only for first-time users or users who have not completed/skipped it.
-- Garden is the primary post-onboarding screen.
+- RealityKit 3D garden is the primary post-onboarding screen.
 - All eight MVP practices appear consistently in garden and logging.
 - Daily tended/untended state works for each MVP practice.
 - Growth stages advance from accumulated tended days.
@@ -535,7 +537,6 @@ MVP acceptance requires:
 - Arabic and English MVP copy are complete.
 - Arabic layout does not clip primary controls on supported iPhone sizes.
 - Worship data remains local and private.
-- Settings persist across app restart.
+- Settings and 3D camera state persist across app restart.
 - Donation placeholder is visibly disabled and cannot process payment.
 - Non-MVP utility modules are not required for MVP acceptance.
-
