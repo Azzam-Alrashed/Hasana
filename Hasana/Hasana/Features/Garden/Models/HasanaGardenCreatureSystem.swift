@@ -25,51 +25,32 @@ enum HasanaGardenEcosystemConstants {
     static let simulationHz: Float = 60.0
 }
 
-// MARK: - Mathematical Vector & Interpolation Extensions
+// MARK: - Creature-Local SIMD3 Helpers
+// Note: length, lengthSquared, safeNormalized are declared in HasanaGardenCameraPhysics.swift.
+// We only add helpers unique to this file here.
 
-extension SIMD3 where Scalar == Float {
-    /// The length (magnitude) of the 3D vector.
-    var length: Float {
-        let sq = x*x + y*y + z*z
-        return sq > 0 ? sqrt(sq) : 0
-    }
-    
-    /// The squared length of the vector, useful for fast distance comparisons.
-    var lengthSquared: Float {
-        return x*x + y*y + z*z
-    }
-    
-    /// Returns the normalized unit vector.
+fileprivate extension SIMD3 where Scalar == Float {
+    /// Returns the normalized unit vector (creature-local, guards against zero-length).
     var normalized: SIMD3<Float> {
-        let len = length
+        let len = simd_length(self)
         return len > 0.0001 ? self / len : SIMD3<Float>(0, 0, 0)
     }
-    
-    /// Calculates the Euclidean distance between this vector and another.
-    func distance(to other: SIMD3<Float>) -> Float {
-        return (self - other).length
-    }
-    
-    /// Calculates the squared Euclidean distance between this vector and another.
-    func distanceSquared(to other: SIMD3<Float>) -> Float {
-        return (self - other).lengthSquared
-    }
-    
+
     /// Linearly interpolates between this vector and another.
     func lerp(to target: SIMD3<Float>, t: Float) -> SIMD3<Float> {
         let clampedT = Swift.max(0.0, Swift.min(1.0, t))
         return self + (target - self) * clampedT
     }
-    
+
     /// Limits the vector magnitude to a maximum value.
     func limit(to maxVal: Float) -> SIMD3<Float> {
-        let len = length
+        let len = simd_length(self)
         if len > maxVal && len > 0.0001 {
             return (self / len) * maxVal
         }
         return self
     }
-    
+
     /// Generates a random vector within a unit sphere.
     static func randomInUnitSphere() -> SIMD3<Float> {
         while true {
@@ -78,20 +59,25 @@ extension SIMD3 where Scalar == Float {
                 Float.random(in: -1...1),
                 Float.random(in: -1...1)
             )
-            if vec.length <= 1.0 {
-                return vec
-            }
+            if simd_length(vec) <= 1.0 { return vec }
         }
     }
-    
+
     /// Generates a random vector in a hemisphere aligned with the normal.
     static func randomInHemisphere(normal: SIMD3<Float>) -> SIMD3<Float> {
         let unit = randomInUnitSphere().normalized
-        if simd_dot(unit, normal) > 0.0 {
-            return unit
-        } else {
-            return -unit
-        }
+        return simd_dot(unit, normal) > 0.0 ? unit : -unit
+    }
+
+    /// Squared distance to another vector (avoids sqrt).
+    func distanceSquared(to other: SIMD3<Float>) -> Float {
+        let d = self - other
+        return simd_dot(d, d)
+    }
+
+    /// Euclidean distance to another vector.
+    func distance(to other: SIMD3<Float>) -> Float {
+        return simd_distance(self, other)
     }
 }
 
@@ -251,14 +237,14 @@ public final class HasanaGardenSplinePath {
 // MARK: - Creature Types & Core Configurations
 
 /// Defines the types of procedural creatures modeled in the Hasana garden ecosystem.
-public enum GardenCreatureType: String, Codable, CaseIterable {
+enum GardenCreatureType: String, Codable, CaseIterable {
     case butterfly
     case bee
     case bird
 }
 
 /// Defines the operational flight states for the procedural creatures.
-public enum GardenCreatureState: String, Codable {
+enum GardenCreatureState: String, Codable {
     case spawning
     case flying
     case flocking
@@ -270,7 +256,7 @@ public enum GardenCreatureState: String, Codable {
 }
 
 /// Configuration settings defining flight dynamics, steering weights, and landing behaviors.
-public struct GardenCreatureConfig: Codable {
+struct GardenCreatureConfig: Codable {
     var maxSpeed: Float
     var maxForce: Float
     
@@ -382,14 +368,14 @@ public struct GardenCreatureConfig: Codable {
 // MARK: - Pollination Structs
 
 /// A pollen structure carrying the genetic print of the visited plant.
-public struct GardenPollen: Codable, Equatable, Hashable {
+struct GardenPollen: Codable, Equatable, Hashable {
     public let sourcePlantID: HasanaGardenPracticeID
     public let timestamp: Date
     public let quality: Float // Determined by the growth stage and status of the source plant
 }
 
 /// A record representing a successful cross-pollination event in the garden.
-public struct GardenPollinationRecord: Identifiable, Codable, Equatable, Hashable {
+struct GardenPollinationRecord: Identifiable, Codable, Equatable, Hashable {
     public let id: UUID
     public let pollinatorID: UUID
     public let pollinatorType: GardenCreatureType
@@ -411,14 +397,14 @@ public struct GardenPollinationRecord: Identifiable, Codable, Equatable, Hashabl
 
 // MARK: - Landing Point Configuration
 
-public enum GardenLandingType: String, Codable {
+enum GardenLandingType: String, Codable {
     case flower
     case tree
     case stone
     public var title: String { rawValue }
 }
 
-public struct GardenLandingPoint {
+struct GardenLandingPoint {
     public let id: UUID = UUID()
     public let position: SIMD3<Float>
     public let normal: SIMD3<Float>
@@ -876,7 +862,16 @@ public final class HasanaGardenCreatureSystem {
             guard let pos = positions[practice.id] else { continue }
             
             // Adjust landing height depending on visual role and growth stage
-            let growthScale = practiceState.progress.growthStage.modelScale
+            // Inline growth scale — mirrors the fileprivate modelScale in HasanaGardenView.swift
+            let growthScale: Float = {
+                switch practiceState.progress.growthStage {
+                case .seed:      return 0.24
+                case .sprout:    return 0.42
+                case .young:     return 0.62
+                case .mature:    return 0.84
+                case .flowering: return 1.0
+                }
+            }()
             var landingHeight: Float = 0.0
             
             switch practice.visualRole {
