@@ -230,8 +230,9 @@ struct HasanaGardenProgress: Identifiable, Codable, Equatable {
         return components.day
     }
 
-    /// A practice is dormant when it was tended at some point in history but
-    /// hasn't been tended for 2 or more days and is not tended today.
+    /// A practice is gently resting when it was tended at some point in history but
+    /// has not been tended for 2 or more days and is not tended on the selected day.
+    /// This state never changes the cumulative growth calculation.
     func isDormant(todayKey: String) -> Bool {
         guard !tendedDayKeys.isEmpty else { return false } // never tended = seed, not dormant
         guard !isTended(on: todayKey) else { return false } // tended today = not dormant

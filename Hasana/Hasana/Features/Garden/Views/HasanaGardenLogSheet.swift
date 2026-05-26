@@ -111,6 +111,7 @@ struct HasanaGardenLogSheet: View {
                                 practice: practiceState.practice,
                                 progress: practiceState.progress,
                                 isTendedToday: practiceState.isTendedToday,
+                                isDormant: practiceState.isDormant,
                                 isTodaySelected: store.selectedDayKey == store.todayKey,
                                 isSelected: store.selectedPracticeID == practiceState.practice.id,
                                 language: language,
@@ -167,6 +168,7 @@ private struct GardenPracticeLogCard: View {
     let practice: HasanaGardenPractice
     let progress: HasanaGardenProgress
     let isTendedToday: Bool
+    let isDormant: Bool
     let isTodaySelected: Bool
     let isSelected: Bool
     let language: HasanaLanguage
@@ -190,7 +192,7 @@ private struct GardenPracticeLogCard: View {
         if isTendedToday {
             return isTodaySelected ? copy.tendedToday : (language == .arabic ? "تم" : "Tended")
         } else {
-            return isTodaySelected ? copy.tendToday : (language == .arabic ? "ازرع" : "Tend")
+            return isTodaySelected ? copy.tendToday : copy.tendSelectedDay
         }
     }
 
@@ -242,6 +244,13 @@ private struct GardenPracticeLogCard: View {
                         color: HasanaTheme.textMuted
                     )
 
+                    if isDormant {
+                        GardenChip(
+                            title: copy.restingGently,
+                            color: HasanaTheme.textMuted
+                        )
+                    }
+
                     Spacer(minLength: 0)
                 }
 
@@ -276,11 +285,13 @@ private struct GardenPracticeLogCard: View {
         }
         .buttonStyle(GardenPressButtonStyle())
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(isTendedToday ? copy.untendHint : copy.tendHint)
+        .accessibilityHint(isTendedToday ? copy.untendHint(isTodaySelected: isTodaySelected) : copy.tendHint(isTodaySelected: isTodaySelected))
     }
 
     private var accessibilityLabel: String {
-        "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(isTendedToday ? copy.tendedToday : copy.notTendedToday)"
+        let tendedState = isTendedToday ? copy.tendedState(isTodaySelected: isTodaySelected) : copy.notTendedState(isTodaySelected: isTodaySelected)
+        let restingState = isDormant ? ", \(copy.restingGently)" : ""
+        return "\(practice.title(for: language)), \(practice.religiousStatus.title(for: language)), \(progress.growthStage.title(for: language)), \(tendedState)\(restingState)"
     }
 }
 
@@ -348,21 +359,83 @@ struct GardenLogCopy {
         }
     }
 
-    var tendHint: String {
+    var tendSelectedDay: String {
         switch language {
         case .arabic:
-            "اضغط لتسجيل هذه العبادة لهذا اليوم."
+            "ازرع هذا اليوم"
         case .english:
-            "Tap to mark this practice as tended today."
+            "Tend this day"
         }
     }
 
-    var untendHint: String {
+    var restingGently: String {
         switch language {
         case .arabic:
-            "اضغط لإزالة تسجيل اليوم إذا كان بالخطأ."
+            "سكون لطيف"
         case .english:
-            "Tap to remove today's mark if it was added by mistake."
+            "Resting gently"
+        }
+    }
+
+    func tendedState(isTodaySelected: Bool) -> String {
+        if isTodaySelected {
+            return tendedToday
+        }
+
+        switch language {
+        case .arabic:
+            return "تم في هذا اليوم"
+        case .english:
+            return "Tended this day"
+        }
+    }
+
+    func notTendedState(isTodaySelected: Bool) -> String {
+        if isTodaySelected {
+            return notTendedToday
+        }
+
+        switch language {
+        case .arabic:
+            return "لم يتم في هذا اليوم"
+        case .english:
+            return "Not tended this day"
+        }
+    }
+
+    func tendHint(isTodaySelected: Bool) -> String {
+        if isTodaySelected {
+            switch language {
+            case .arabic:
+                return "اضغط لتسجيل هذه العبادة لهذا اليوم."
+            case .english:
+                return "Tap to mark this practice as tended today."
+            }
+        }
+
+        switch language {
+        case .arabic:
+            return "اضغط لتسجيل هذه العبادة لليوم المحدد."
+        case .english:
+            return "Tap to mark this practice as tended for the selected day."
+        }
+    }
+
+    func untendHint(isTodaySelected: Bool) -> String {
+        if isTodaySelected {
+            switch language {
+            case .arabic:
+                return "اضغط لإزالة تسجيل اليوم إذا كان بالخطأ."
+            case .english:
+                return "Tap to remove today's mark if it was added by mistake."
+            }
+        }
+
+        switch language {
+        case .arabic:
+            return "اضغط لإزالة تسجيل اليوم المحدد إذا كان بالخطأ."
+        case .english:
+            return "Tap to remove the selected day's mark if it was added by mistake."
         }
     }
 

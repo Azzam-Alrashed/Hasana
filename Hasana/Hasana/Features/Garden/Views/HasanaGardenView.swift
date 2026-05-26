@@ -104,7 +104,7 @@ private struct HasanaGardenA11yOverlay: View {
         if state.isTendedToday {
             tendedState = language == .arabic ? "تم اليوم" : "Tended today"
         } else if state.isDormant {
-            tendedState = language == .arabic ? "نائمة – تحتاج رعاية" : "Dormant – needs care"
+            tendedState = language == .arabic ? "في سكون لطيف" : "Resting gently"
         } else {
             tendedState = language == .arabic ? "لم يتم اليوم" : "Not tended today"
         }
@@ -458,6 +458,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
 
             if state.isTendedToday {
                 root.addChild(makeTendedHalo(for: state.practice.id))
+                root.addChild(makeTendedCheckmark(for: state.practice.id))
             }
 
             root.generateCollisionShapes(recursive: true)
@@ -555,9 +556,8 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             center.position = [0, centerHeight, 0]
             root.addChild(center)
 
-            // Dormant flowers have fewer petals (partially closed look)
             let fullPetalCount = state.progress.growthStage == .flowering ? 6 : max(2, state.progress.growthStage.leafCount)
-            let petalCount = (state.isDormant && !state.isTendedToday) ? max(2, fullPetalCount - 2) : fullPetalCount
+            let petalCount = fullPetalCount
 
             for index in 0..<petalCount {
                 let angle = (Float(index) / Float(max(petalCount, 1))) * .pi * 2
@@ -567,10 +567,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                     color: accent,
                     roughness: 0.58
                 )
-                // Dormant petals pull inward
-                let petalRadius: Float = (state.isDormant && !state.isTendedToday)
-                    ? 0.07 + scale * 0.03
-                    : 0.12 + scale * 0.05
+                let petalRadius: Float = 0.12 + scale * 0.05
                 petal.position = [
                     cos(angle) * petalRadius,
                     centerHeight,
@@ -590,6 +587,32 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             )
             halo.position = [0, 0.055, 0]
             return halo
+        }
+
+        private func makeTendedCheckmark(for id: HasanaGardenPracticeID) -> Entity {
+            let root = Entity()
+
+            let shortStroke = namedModel(
+                id: id,
+                mesh: .generateBox(width: 0.08, height: 0.035, depth: 0.20),
+                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
+                roughness: 0.42
+            )
+            shortStroke.position = [-0.045, 0.112, 0.0]
+            shortStroke.orientation = simd_quatf(angle: 0.72, axis: [0, 1, 0])
+
+            let longStroke = namedModel(
+                id: id,
+                mesh: .generateBox(width: 0.10, height: 0.035, depth: 0.32),
+                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
+                roughness: 0.42
+            )
+            longStroke.position = [0.075, 0.126, 0.02]
+            longStroke.orientation = simd_quatf(angle: -0.68, axis: [0, 1, 0])
+
+            root.addChild(shortStroke)
+            root.addChild(longStroke)
+            return root
         }
 
         private func namedModel(
