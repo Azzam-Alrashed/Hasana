@@ -28,6 +28,7 @@ struct RootView: View {
             )
 
             FloatingCommandButton(
+                language: appSettings.language,
                 onTap: {
                     commandPalette.setPresented(true)
                 },

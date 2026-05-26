@@ -17,7 +17,7 @@ struct HasanaOnboardingView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                onboardingHeader
+                onboardingHeader(isCompact: geometry.size.width < 380)
 
                 TabView(selection: $selectedPage) {
                     ForEach(Array(copy.pages.enumerated()), id: \.element.id) { index, page in
@@ -27,7 +27,7 @@ struct HasanaOnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
-                onboardingFooter
+                onboardingFooter(isCompact: geometry.size.height < 720)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(HasanaTheme.canvasBackground.ignoresSafeArea())
@@ -36,8 +36,8 @@ struct HasanaOnboardingView: View {
         .environment(\.locale, Locale(identifier: language.localeIdentifier))
     }
 
-    private var onboardingHeader: some View {
-        HStack(spacing: 12) {
+    private func onboardingHeader(isCompact: Bool) -> some View {
+        HStack(spacing: isCompact ? 8 : 12) {
             Menu {
                 ForEach(HasanaLanguage.allCases) { language in
                     Button(language.displayName) {
@@ -47,42 +47,56 @@ struct HasanaOnboardingView: View {
             } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "globe")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
+                        .accessibilityHidden(true)
 
                     Text(language.displayName)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
                 .foregroundStyle(HasanaTheme.textPrimary)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, isCompact ? 10 : 12)
                 .padding(.vertical, 9)
+                .frame(minHeight: 44)
                 .background(HasanaTheme.elevatedSurface.opacity(0.78), in: Capsule())
                 .overlay {
                     Capsule()
                         .stroke(HasanaTheme.border.opacity(0.72), lineWidth: 0.8)
                 }
             }
+            .accessibilityLabel(copy.languagePickerLabel)
+            .accessibilityHint(copy.languagePickerHint)
 
             Spacer()
 
             Text(copy.progressText(current: selectedPage + 1, total: copy.pages.count))
-                .font(.system(size: 13, weight: .bold))
+                .font(.footnote.weight(.bold))
                 .foregroundStyle(HasanaTheme.textMuted)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .layoutPriority(1)
+                .accessibilityLabel(copy.progressText(current: selectedPage + 1, total: copy.pages.count))
 
             Button(copy.skip) {
                 onFinished()
             }
-            .font(.system(size: 14, weight: .semibold))
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(HasanaTheme.textMuted)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .layoutPriority(1)
+            .frame(minHeight: 44)
+            .accessibilityHint(copy.skipHint)
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 18)
+        .padding(.horizontal, isCompact ? 16 : 22)
+        .padding(.top, isCompact ? 14 : 18)
         .padding(.bottom, 6)
     }
 
-    private var onboardingFooter: some View {
-        VStack(spacing: 18) {
+    private func onboardingFooter(isCompact: Bool) -> some View {
+        VStack(spacing: isCompact ? 14 : 18) {
             HStack(spacing: 8) {
                 ForEach(copy.pages.indices, id: \.self) { index in
                     Capsule()
@@ -100,7 +114,7 @@ struct HasanaOnboardingView: View {
                         }
                     } label: {
                         Image(systemName: language == .arabic ? "arrow.right" : "arrow.left")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.headline.weight(.bold))
                             .foregroundStyle(HasanaTheme.textPrimary)
                             .frame(width: 56, height: 56)
                             .background(HasanaTheme.elevatedSurface.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -110,6 +124,8 @@ struct HasanaOnboardingView: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(copy.previous)
+                    .accessibilityHint(copy.previousHint)
                 }
 
                 Button {
@@ -124,11 +140,14 @@ struct HasanaOnboardingView: View {
                     HStack(spacing: 9) {
                         Text(selectedPage == copy.pages.count - 1 ? copy.start : copy.next)
                             .font(.system(size: 17, weight: .bold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
+                            .layoutPriority(1)
+                            .multilineTextAlignment(.center)
 
                         Image(systemName: selectedPage == copy.pages.count - 1 ? "checkmark" : (language == .arabic ? "arrow.left" : "arrow.right"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.subheadline.weight(.bold))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: 56)
@@ -136,10 +155,11 @@ struct HasanaOnboardingView: View {
                     .shadow(color: HasanaTheme.shadow.opacity(0.16), radius: 18, x: 0, y: 10)
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint(selectedPage == copy.pages.count - 1 ? copy.startHint : copy.nextHint)
             }
         }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 28)
+        .padding(.horizontal, isCompact ? 16 : 22)
+        .padding(.bottom, isCompact ? 18 : 28)
     }
 }
 
@@ -148,43 +168,46 @@ private struct OnboardingPageView: View {
     let geometry: GeometryProxy
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 8)
+        let isCompactHeight = geometry.size.height < 720
+        let sceneWidth = min(max(geometry.size.width - (isCompactHeight ? 48 : 64), 236), isCompactHeight ? 270 : 310)
+        let sceneHeight = min(max(geometry.size.height * (isCompactHeight ? 0.26 : 0.34), 184), isCompactHeight ? 236 : 310)
+
+        VStack(spacing: isCompactHeight ? 16 : 28) {
+            Spacer(minLength: isCompactHeight ? 0 : 8)
 
             OnboardingGardenScene(page: page)
-                .frame(
-                    width: min(geometry.size.width - 64, 310),
-                    height: min(max(geometry.size.height * 0.34, 230), 310)
-                )
+                .frame(width: sceneWidth, height: sceneHeight)
 
-            VStack(spacing: 12) {
+            VStack(spacing: isCompactHeight ? 10 : 12) {
                 Text(page.title)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: isCompactHeight ? 28 : 32, weight: .bold, design: .rounded))
                     .foregroundStyle(HasanaTheme.textPrimary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.72)
+                    .lineLimit(isCompactHeight ? 4 : 3)
+                    .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(page.message)
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: isCompactHeight ? 15 : 17, weight: .medium))
                     .foregroundStyle(HasanaTheme.textMuted)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(4)
+                    .lineSpacing(isCompactHeight ? 2 : 4)
                     .frame(maxWidth: 330)
-                    .lineLimit(5)
-                    .minimumScaleFactor(0.86)
+                    .lineLimit(isCompactHeight ? 6 : 5)
+                    .minimumScaleFactor(0.78)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                VStack(spacing: 8) {
+                VStack(spacing: isCompactHeight ? 6 : 8) {
                     ForEach(page.highlights) { highlight in
                         OnboardingHighlightRow(highlight: highlight)
                     }
                 }
-                .padding(.top, 8)
+                .padding(.top, isCompactHeight ? 4 : 8)
                 .frame(maxWidth: 342)
             }
-            .padding(.horizontal, 28)
+            .padding(.horizontal, isCompactHeight ? 20 : 28)
 
-            Spacer(minLength: 12)
+            Spacer(minLength: isCompactHeight ? 0 : 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -266,16 +289,18 @@ private struct OnboardingHighlightRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: highlight.symbolName)
-                .font(.system(size: 12, weight: .bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(HasanaTheme.accent)
                 .frame(width: 28, height: 28)
                 .background(HasanaTheme.accentSoft.opacity(0.72), in: Circle())
+                .accessibilityHidden(true)
 
             Text(highlight.text)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(HasanaTheme.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.84)
+                .lineLimit(3)
+                .minimumScaleFactor(0.76)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
         }
@@ -378,12 +403,75 @@ private struct OnboardingCopy {
         }
     }
 
+    var previous: String {
+        switch language {
+        case .arabic:
+            "السابق"
+        case .english:
+            "Previous"
+        }
+    }
+
     var start: String {
         switch language {
         case .arabic:
             "ابدأ حديقتي"
         case .english:
             "Start my garden"
+        }
+    }
+
+    var languagePickerLabel: String {
+        switch language {
+        case .arabic:
+            "اختيار اللغة، العربية"
+        case .english:
+            "Language picker, English"
+        }
+    }
+
+    var languagePickerHint: String {
+        switch language {
+        case .arabic:
+            "افتح القائمة لتغيير لغة التطبيق."
+        case .english:
+            "Open the menu to change the app language."
+        }
+    }
+
+    var skipHint: String {
+        switch language {
+        case .arabic:
+            "يتجاوز المقدمة ويفتح الحديقة."
+        case .english:
+            "Skips onboarding and opens the garden."
+        }
+    }
+
+    var previousHint: String {
+        switch language {
+        case .arabic:
+            "يعرض صفحة المقدمة السابقة."
+        case .english:
+            "Shows the previous onboarding page."
+        }
+    }
+
+    var nextHint: String {
+        switch language {
+        case .arabic:
+            "يعرض صفحة المقدمة التالية."
+        case .english:
+            "Shows the next onboarding page."
+        }
+    }
+
+    var startHint: String {
+        switch language {
+        case .arabic:
+            "ينهي المقدمة ويفتح الحديقة."
+        case .english:
+            "Finishes onboarding and opens the garden."
         }
     }
 
@@ -405,12 +493,12 @@ private struct OnboardingCopy {
                     title: "عباداتك تصنع حديقة عمر",
                     message: "ابدأ من أفعال صغيرة قابلة للاستمرار، وشاهد أثرها ينمو أمامك.",
                     symbolName: "leaf.fill",
-                    metricSymbolName: "flame.fill",
-                    metricValue: "٣ أيام",
-                    metricCaption: "سلسلة لطيفة",
+                    metricSymbolName: "checkmark.seal.fill",
+                    metricValue: "٨",
+                    metricCaption: "عبادات أساسية",
                     highlights: [
                         highlight("garden-a", "checkmark.circle.fill", "سجل حسنة اليوم بضغطة واحدة"),
-                        highlight("garden-b", "chart.line.uptrend.xyaxis", "تابع نمو العادة بلا ضغط")
+                        highlight("garden-b", "leaf.fill", "تابع نمو الحديقة بلا ضغط")
                     ],
                     plants: plantSetOne
                 ),
@@ -430,14 +518,14 @@ private struct OnboardingCopy {
                 ),
                 OnboardingPage(
                     id: "discovery",
-                    title: "اكتشف سننا جميلة",
-                    message: "مع الوقت، تظهر نباتات نادرة وفرص موسمية تقربك بخطوات صغيرة.",
-                    symbolName: "sparkles",
-                    metricSymbolName: "gift.fill",
-                    metricValue: "سنن",
-                    metricCaption: "تظهر مع الاستمرار",
+                    title: "حديقة خاصة بك",
+                    message: "تقدمك يبقى على جهازك، وتعود للعبادات الأساسية متى احتجت.",
+                    symbolName: "lock.fill",
+                    metricSymbolName: "leaf.circle.fill",
+                    metricValue: "محلي",
+                    metricCaption: "بياناتك لك",
                     highlights: [
-                        highlight("discovery-a", "sparkles", "افتح مسارات عبادة جديدة"),
+                        highlight("discovery-a", "lock.fill", "سجل عبادتك بخصوصية وطمأنينة"),
                         highlight("discovery-b", "sun.max.fill", "ابدأ بحديقة جاهزة للرعاية")
                     ],
                     plants: plantSetThree
@@ -450,12 +538,12 @@ private struct OnboardingCopy {
                     title: "Your worship grows a lifelong garden",
                     message: "Begin with small actions you can keep, then watch their impact grow.",
                     symbolName: "leaf.fill",
-                    metricSymbolName: "flame.fill",
-                    metricValue: "3 days",
-                    metricCaption: "Gentle streak",
+                    metricSymbolName: "checkmark.seal.fill",
+                    metricValue: "8",
+                    metricCaption: "Core practices",
                     highlights: [
                         highlight("garden-a", "checkmark.circle.fill", "Log today’s good deed in one tap"),
-                        highlight("garden-b", "chart.line.uptrend.xyaxis", "Track habit growth without pressure")
+                        highlight("garden-b", "leaf.fill", "Follow garden growth without pressure")
                     ],
                     plants: plantSetOne
                 ),
@@ -475,14 +563,14 @@ private struct OnboardingCopy {
                 ),
                 OnboardingPage(
                     id: "discovery",
-                    title: "Discover beautiful Sunnahs",
-                    message: "Over time, rare plants and seasonal opportunities appear in small, welcoming steps.",
-                    symbolName: "sparkles",
-                    metricSymbolName: "gift.fill",
-                    metricValue: "Sunnahs",
-                    metricCaption: "Unlocked by consistency",
+                    title: "A garden that stays yours",
+                    message: "Your progress stays on this device, ready whenever you return to the core practices.",
+                    symbolName: "lock.fill",
+                    metricSymbolName: "leaf.circle.fill",
+                    metricValue: "Local",
+                    metricCaption: "Your data stays yours",
                     highlights: [
-                        highlight("discovery-a", "sparkles", "Open new worship paths over time"),
+                        highlight("discovery-a", "lock.fill", "Log worship with privacy and calm"),
                         highlight("discovery-b", "sun.max.fill", "Start with a garden ready to tend")
                     ],
                     plants: plantSetThree

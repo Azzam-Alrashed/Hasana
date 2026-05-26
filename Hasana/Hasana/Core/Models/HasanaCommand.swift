@@ -143,7 +143,7 @@ struct HasanaCommand: Identifiable, Hashable {
                 HasanaCommand(
                     id: .openPayments,
                     title: "دعم التطبيق",
-                    subtitle: "تبرع للمساعدة في تطوير حسنة",
+                    subtitle: "معاينة دعم التطوير، والدفع غير مفعل",
                     icon: "creditcard.fill",
                     category: .giving,
                     keywords: ["payments", "payment", "pay", "support", "development", "donation", "مدفوعات", "دعم", "تطوير", "تبرع"],
@@ -236,7 +236,7 @@ struct HasanaCommand: Identifiable, Hashable {
                 HasanaCommand(
                     id: .openPayments,
                     title: "Support Hasana",
-                    subtitle: "Donate to support app development",
+                    subtitle: "Preview development support; payments are off",
                     icon: "creditcard.fill",
                     category: .giving,
                     keywords: ["payments", "payment", "pay", "support", "development", "donation", "مدفوعات", "دعم", "تطوير", "تبرع"],

@@ -46,9 +46,12 @@ struct HasanaGardenView: View {
 
                 Spacer()
 
-                HasanaGardenHint(language: language)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 22)
+                VStack(spacing: 10) {
+                    HasanaGardenStateLegend(language: language)
+                    HasanaGardenHint(language: language)
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 22)
             }
             .allowsHitTesting(false)
             .environment(\.layoutDirection, language.layoutDirection)
@@ -85,7 +88,8 @@ private struct HasanaGardenA11yOverlay: View {
                         onPracticeSelected(practiceState.practice.id)
                     } label: {
                         Color.clear
-                            .frame(width: 80, height: 80)
+                            .frame(width: 88, height: 88)
+                            .contentShape(Rectangle())
                     }
                     .position(screenPos)
                     .accessibilityLabel(accessibilityLabel(for: practiceState))
@@ -104,7 +108,7 @@ private struct HasanaGardenA11yOverlay: View {
         if state.isTendedToday {
             tendedState = language == .arabic ? "تم اليوم" : "Tended today"
         } else if state.isDormant {
-            tendedState = language == .arabic ? "نائمة – تحتاج رعاية" : "Dormant – needs care"
+            tendedState = language == .arabic ? "في سكون لطيف" : "Resting gently"
         } else {
             tendedState = language == .arabic ? "لم يتم اليوم" : "Not tended today"
         }
@@ -458,6 +462,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
 
             if state.isTendedToday {
                 root.addChild(makeTendedHalo(for: state.practice.id))
+                root.addChild(makeTendedCheckmark(for: state.practice.id))
             }
 
             root.generateCollisionShapes(recursive: true)
@@ -555,9 +560,8 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             center.position = [0, centerHeight, 0]
             root.addChild(center)
 
-            // Dormant flowers have fewer petals (partially closed look)
             let fullPetalCount = state.progress.growthStage == .flowering ? 6 : max(2, state.progress.growthStage.leafCount)
-            let petalCount = (state.isDormant && !state.isTendedToday) ? max(2, fullPetalCount - 2) : fullPetalCount
+            let petalCount = fullPetalCount
 
             for index in 0..<petalCount {
                 let angle = (Float(index) / Float(max(petalCount, 1))) * .pi * 2
@@ -567,10 +571,7 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
                     color: accent,
                     roughness: 0.58
                 )
-                // Dormant petals pull inward
-                let petalRadius: Float = (state.isDormant && !state.isTendedToday)
-                    ? 0.07 + scale * 0.03
-                    : 0.12 + scale * 0.05
+                let petalRadius: Float = 0.12 + scale * 0.05
                 petal.position = [
                     cos(angle) * petalRadius,
                     centerHeight,
@@ -590,6 +591,32 @@ private struct HasanaGardenRealityView: UIViewRepresentable {
             )
             halo.position = [0, 0.055, 0]
             return halo
+        }
+
+        private func makeTendedCheckmark(for id: HasanaGardenPracticeID) -> Entity {
+            let root = Entity()
+
+            let shortStroke = namedModel(
+                id: id,
+                mesh: .generateBox(width: 0.08, height: 0.035, depth: 0.20),
+                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
+                roughness: 0.42
+            )
+            shortStroke.position = [-0.045, 0.112, 0.0]
+            shortStroke.orientation = simd_quatf(angle: 0.72, axis: [0, 1, 0])
+
+            let longStroke = namedModel(
+                id: id,
+                mesh: .generateBox(width: 0.10, height: 0.035, depth: 0.32),
+                color: UIColor(HasanaTheme.textPrimary.opacity(0.88)),
+                roughness: 0.42
+            )
+            longStroke.position = [0.075, 0.126, 0.02]
+            longStroke.orientation = simd_quatf(angle: -0.68, axis: [0, 1, 0])
+
+            root.addChild(shortStroke)
+            root.addChild(longStroke)
+            return root
         }
 
         private func namedModel(
@@ -763,29 +790,49 @@ private struct HasanaGardenStatusBar: View {
     let language: HasanaLanguage
 
     var body: some View {
-        HStack(spacing: 10) {
-            statusItem(
-                icon: "checkmark.seal.fill",
-                value: "\(tendedTodayCount)/\(totalCount)",
-                label: todayLabel,
-                color: HasanaTheme.accent
-            )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                statusItem(
+                    icon: "checkmark.seal.fill",
+                    value: "\(tendedTodayCount)/\(totalCount)",
+                    label: todayLabel,
+                    color: HasanaTheme.accent
+                )
 
-            statusItem(
-                icon: "leaf.fill",
-                value: "\(totalTendedDays)",
-                label: totalLabel,
-                color: HasanaTheme.gold
-            )
+                statusItem(
+                    icon: "leaf.fill",
+                    value: "\(totalTendedDays)",
+                    label: totalLabel,
+                    color: HasanaTheme.gold
+                )
+            }
+
+            VStack(spacing: 8) {
+                statusItem(
+                    icon: "checkmark.seal.fill",
+                    value: "\(tendedTodayCount)/\(totalCount)",
+                    label: todayLabel,
+                    color: HasanaTheme.accent
+                )
+
+                statusItem(
+                    icon: "leaf.fill",
+                    value: "\(totalTendedDays)",
+                    label: totalLabel,
+                    color: HasanaTheme.gold
+                )
+            }
         }
-        .padding(7)
-        .background(.ultraThinMaterial, in: Capsule())
-        .background(HasanaTheme.elevatedSurface.opacity(0.56), in: Capsule())
+        .padding(8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(HasanaTheme.elevatedSurface.opacity(0.76), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            Capsule()
-                .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(0.68), lineWidth: 0.8)
         }
         .shadow(color: HasanaTheme.shadow.opacity(0.1), radius: 14, x: 0, y: 8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 
     private func statusItem(icon: String, value: String, label: String, color: Color) -> some View {
@@ -793,21 +840,23 @@ private struct HasanaGardenStatusBar: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(color)
+                .frame(width: 24, height: 24)
+                .background(color.opacity(0.12), in: Circle())
 
             Text(value)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(HasanaTheme.textPrimary)
                 .monospacedDigit()
 
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(HasanaTheme.textMuted)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.8)
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
-        .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.52), in: Capsule())
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.74), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var todayLabel: String {
@@ -827,6 +876,63 @@ private struct HasanaGardenStatusBar: View {
             "total"
         }
     }
+
+    private var accessibilitySummary: String {
+        switch language {
+        case .arabic:
+            "\(tendedTodayCount) من \(totalCount) تم اليوم. إجمالي أيام الرعاية \(totalTendedDays)."
+        case .english:
+            "\(tendedTodayCount) of \(totalCount) tended today. \(totalTendedDays) total tended days."
+        }
+    }
+}
+
+private struct HasanaGardenStateLegend: View {
+    let language: HasanaLanguage
+
+    var body: some View {
+        HStack(spacing: 8) {
+            legendItem(icon: "checkmark.seal.fill", text: tendedText, color: HasanaTheme.gold)
+            legendItem(icon: "circle", text: untendedText, color: HasanaTheme.textMuted)
+            legendItem(icon: "leaf.arrow.circlepath", text: dormantText, color: HasanaTheme.reflection)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .background(HasanaTheme.elevatedSurface.opacity(0.46), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(HasanaTheme.border.opacity(0.4), lineWidth: 0.7)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func legendItem(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .accessibilityHidden(true)
+
+            Text(text)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(HasanaTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+    }
+
+    private var tendedText: String {
+        language == .arabic ? "تم" : "Tended"
+    }
+
+    private var untendedText: String {
+        language == .arabic ? "لم يتم" : "Untended"
+    }
+
+    private var dormantText: String {
+        language == .arabic ? "نائمة" : "Dormant"
+    }
 }
 
 // MARK: - Garden Hint
@@ -835,24 +941,44 @@ private struct HasanaGardenHint: View {
     let language: HasanaLanguage
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "rotate.3d")
-                .font(.system(size: 12, weight: .bold))
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                hintIcon("rotate.3d")
+                hintIcon("magnifyingglass")
+                hintIcon("hand.tap.fill")
 
-            Text(text)
-                .font(.system(size: 12, weight: .semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
+                Text(text)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.84)
+            }
+
+            HStack(spacing: 8) {
+                hintIcon("hand.tap.fill")
+
+                Text(shortText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.84)
+            }
         }
         .foregroundStyle(HasanaTheme.textMuted)
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(.ultraThinMaterial, in: Capsule())
-        .background(HasanaTheme.elevatedSurface.opacity(0.42), in: Capsule())
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(HasanaTheme.elevatedSurface.opacity(0.68), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
-            Capsule()
-                .stroke(HasanaTheme.border.opacity(0.38), lineWidth: 0.7)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(HasanaTheme.border.opacity(0.58), lineWidth: 0.7)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func hintIcon(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 12, weight: .bold))
+            .frame(width: 24, height: 24)
+            .background(HasanaTheme.elevatedSurfaceSoft.opacity(0.72), in: Circle())
     }
 
     private var text: String {
@@ -861,6 +987,15 @@ private struct HasanaGardenHint: View {
             "اسحب لتدوير الحديقة، وقرّب بإصبعين، واضغط على نبتة للتسجيل"
         case .english:
             "Drag to orbit, pinch to zoom, tap a plant to log"
+        }
+    }
+
+    private var shortText: String {
+        switch language {
+        case .arabic:
+            "اضغط على نبتة للتسجيل"
+        case .english:
+            "Tap a plant to log"
         }
     }
 }

@@ -21,6 +21,7 @@ struct HasanaSettingsView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .accessibilityLabel(copy.language)
                     }
 
                     SettingsSection(title: copy.appearance, icon: "circle.lefthalf.filled") {
@@ -31,6 +32,7 @@ struct HasanaSettingsView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .accessibilityLabel(copy.appearance)
                     }
 
                     SettingsSection(title: settings.language == .arabic ? "الصوت والبيئة" : "Sound & Ambience", icon: "speaker.wave.2.fill") {
@@ -41,13 +43,13 @@ struct HasanaSettingsView: View {
                                 SoundManager.shared.setMuted(newValue)
                             }
                         ))
+                        .accessibilityHint(settings.language == .arabic ? "يشغل أو يكتم أصوات الخلفية." : "Turns background ambience on or off.")
                     }
 
                     SettingsSection(title: copy.theme, icon: "paintpalette.fill") {
                         LazyVGrid(
                             columns: [
-                                GridItem(.flexible(), spacing: 10),
-                                GridItem(.flexible(), spacing: 10)
+                                GridItem(.adaptive(minimum: 150), spacing: 10)
                             ],
                             spacing: 10
                         ) {
@@ -66,27 +68,30 @@ struct HasanaSettingsView: View {
                     SettingsSection(title: copy.appIcon, icon: "app.badge.fill") {
                         LazyVGrid(
                             columns: [
-                                GridItem(.flexible(), spacing: 10),
-                                GridItem(.flexible(), spacing: 10)
+                                GridItem(.adaptive(minimum: 150), spacing: 10)
                             ],
                             spacing: 10
                         ) {
                             ForEach(HasanaAppIcon.allCases) { appIcon in
+                                let isEnabled = settings.supportsAlternateAppIcons || appIcon == .primary
+
                                 AppIconChoiceButton(
                                     appIcon: appIcon,
                                     language: settings.language,
-                                    isSelected: settings.appIcon == appIcon
+                                    isSelected: settings.appIcon == appIcon,
+                                    isEnabled: isEnabled
                                 ) {
-                                    settings.appIcon = appIcon
+                                    settings.selectAppIcon(appIcon)
                                 }
                             }
                         }
 
                         if let errorMessage = settings.appIconErrorMessage {
                             Text(errorMessage)
-                                .font(.system(size: 12, weight: .regular))
+                                .font(.footnote)
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -125,14 +130,17 @@ private struct SettingsSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(HasanaTheme.accent)
                     .frame(width: 24, height: 24)
                     .background(HasanaTheme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .accessibilityHidden(true)
 
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.headline.weight(.semibold))
                     .foregroundStyle(HasanaTheme.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.86)
 
                 Spacer()
             }
@@ -172,19 +180,20 @@ private struct ThemeChoiceButton: View {
 
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(HasanaTheme.accent)
+                            .accessibilityHidden(true)
                     }
                 }
 
                 Text(theme.title(for: language))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(HasanaTheme.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.8)
             }
             .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
             .background(isSelected ? HasanaTheme.accentSoft.opacity(0.72) : HasanaTheme.elevatedSurfaceSoft.opacity(0.72))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
@@ -193,6 +202,20 @@ private struct ThemeChoiceButton: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
+    }
+
+    private var accessibilityLabel: String {
+        let title = theme.title(for: language)
+        let state = language == .arabic
+            ? (isSelected ? "محدد" : "غير محدد")
+            : (isSelected ? "Selected" : "Not selected")
+        return "\(title), \(state)"
+    }
+
+    private var accessibilityHint: String {
+        language == .arabic ? "اضغط لاختيار هذه السمة." : "Tap to choose this theme."
     }
 }
 
@@ -200,6 +223,7 @@ private struct AppIconChoiceButton: View {
     let appIcon: HasanaAppIcon
     let language: HasanaLanguage
     let isSelected: Bool
+    let isEnabled: Bool
     let action: () -> Void
 
     var body: some View {
@@ -208,30 +232,37 @@ private struct AppIconChoiceButton: View {
                 Image(appIcon.previewAssetName)
                     .resizable()
                     .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(HasanaTheme.border.opacity(0.46), lineWidth: 0.6)
-                }
-                .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 7, x: 0, y: 4)
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(HasanaTheme.border.opacity(0.46), lineWidth: 0.6)
+                    }
+                    .shadow(color: HasanaTheme.shadow.opacity(0.12), radius: 7, x: 0, y: 4)
+                    .accessibilityHidden(true)
 
                 Text(appIcon.title(for: language))
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(HasanaTheme.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.75)
 
                 Spacer(minLength: 4)
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(HasanaTheme.accent)
+                        .accessibilityHidden(true)
+                } else if !isEnabled {
+                    Image(systemName: "minus.circle")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(HasanaTheme.textMuted)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 64)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .background(isSelected ? HasanaTheme.accentSoft.opacity(0.72) : HasanaTheme.elevatedSurfaceSoft.opacity(0.72))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
@@ -240,6 +271,22 @@ private struct AppIconChoiceButton: View {
             }
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.58)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
+    }
+
+    private var accessibilityLabel: String {
+        let title = appIcon.title(for: language)
+        let state = language == .arabic
+            ? (isSelected ? "محددة" : "غير محددة")
+            : (isSelected ? "Selected" : "Not selected")
+        return "\(title), \(state)"
+    }
+
+    private var accessibilityHint: String {
+        language == .arabic ? "اضغط لاختيار أيقونة التطبيق هذه." : "Tap to choose this app icon."
     }
 }
 
